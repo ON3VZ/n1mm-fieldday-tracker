@@ -23,7 +23,12 @@ UTC = timezone.utc
 
 
 @pytest.fixture()
-def running_app(tmp_path):
+def running_app(tmp_path, monkeypatch):
+    # Isolate app settings to a temp dir so the test never reads the real
+    # user's settings (e.g. a configured export_folder), which would send
+    # exports outside repo.exports_dir and break the export assertions.
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg"))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "localappdata"))
     start = datetime.now(UTC) - timedelta(hours=1)
     fieldday = FieldDay(
         id="fd-int", name="Integratietest",
