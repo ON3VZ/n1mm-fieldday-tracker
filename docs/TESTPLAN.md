@@ -34,6 +34,14 @@ Stop de app (Ctrl+C) en start opnieuw.
 ✅ *Verwacht:* dezelfde velddag opent; eerder ontvangen QSO's en overrides
 staan er nog exact zo bij.
 
+**A6. Crash-simulatie (belangrijk vóór de velddag!)**
+Laat de app draaien met enkele QSO's in de matrix. Sluit het zwarte
+venster met de **✕** (dat is een harde kill, geen nette afsluiting).
+Start de app opnieuw.
+✅ *Verwacht:* binnen enkele seconden staat exact dezelfde matrix er weer,
+inclusief manuele statussen. Er gaat níéts verloren — elk QSO wordt bij
+ontvangst meteen bewaard. (Geverifieerd met kill -9: hersteltijd < 1 s.)
+
 ## Deel B — Deelnemerslijst
 
 **B1. Echte Excel importeren**
@@ -143,41 +151,54 @@ QSO op dezelfde band verschijnt in de lijst).
 Zoek "ON4B"; filter op categorie; filter op status "gedeeltelijk".
 ✅ *Verwacht:* matrix én "Nog te werken" volgen de filters; legende blijft.
 
+**D8b. Filters wissen**
+Zoek op een onbestaande roepnaam zodat de matrix leeg is.
+✅ *Verwacht:* melding "No stations match" mét een knop **Clear all
+filters**; één tik en alle 38 rijen staan er weer. Ook na een re-import
+van de lijst mag een oud categorie-filter nooit blijven "plakken".
+
+**D9. Meldingen als popup**
+Doe een ADIF-import of zet een override.
+✅ *Verwacht:* de melding verschijnt als **popup bovenaan het scherm**
+(geen scrollen nodig) en verdwijnt vanzelf na enkele seconden. Een import
+met 0 nieuwe QSO's toont een oranje popup mét de reden — bv. de tip dat de
+QSO's buiten de velddagperiode vallen.
+
 **D8. Live-indicator bij uitval**
 Stop de app terwijl de browser open blijft.
 ✅ *Verwacht:* indicator wordt binnen ±10 s rood ("No data"); na herstart
 van de app herstelt hij vanzelf naar groen.
 
-## Deel E — Overrides en sync (API; knoppen volgen in fase 12/13)
-
-> Tijdelijk via de command line te testen (PowerShell: gebruik `curl.exe`).
+## Deel E — Overrides en sync (via de knoppen)
 
 **E1. Manual override zetten**
-```
-curl -X POST http://127.0.0.1:8765/api/override -H "Content-Type: application/json" -d "{\"normalized_callsign\":\"ON4FA\",\"band\":\"160m\",\"override_type\":\"manual_worked\",\"reason\":\"papieren log\",\"set_by\":\"ON6WL\"}"
-```
-✅ *Verwacht:* cel wordt donkergroen mét ✎; celdetail toont reden en wie.
+Tik in de matrix op een lege cel (bv. ON4FA / 160m) en kies **Mark
+worked**, vul als reden "papieren log" in.
+✅ *Verwacht:* popup "Done."; cel wordt donkergroen mét ✎; celdetail toont
+de reden.
 
 **E2. Override wint van N1MM**
-Zet op een gewerkte (groene) cel `manual_not_worked`.
-✅ *Verwacht:* cel wordt oranje ✗ ondanks het bestaande QSO (BR-05).
+Tik op een grőene (gewerkte) cel en kies **Mark NOT worked**.
+✅ *Verwacht:* cel wordt oranje ✗✎ ondanks het bestaande QSO (BR-05).
 
 **E3. Override wissen**
-```
-curl -X POST http://127.0.0.1:8765/api/override/clear -H "Content-Type: application/json" -d "{\"normalized_callsign\":\"ON4FA\",\"band\":\"160m\"}"
-```
-✅ *Verwacht:* automatische status geldt weer (groen als er een QSO was,
-anders wit).
+Tik op de cel uit E2 en kies **Clear manual status**.
+✅ *Verwacht:* de automatische status geldt weer — **groen**, want het
+N1MM-QSO bestaat nog. (Wis je de override van E1 op een cel zónder QSO,
+dan wordt die weer wit.) *Servermatig geverifieerd: override → clear →
+`worked_by_n1mm`.*
 
 **E4. Manuele sync**
-`curl -X POST http://127.0.0.1:8765/api/sync -d "{}"`
-✅ *Verwacht:* JSON-rapport (totaal, matched, per reden geweigerd); de
-matrix verandert **niet** (incrementeel en volledig geven hetzelfde — de
-kernwaarborg van §9.2).
+Manage → **Full resync now**.
+✅ *Verwacht:* popup met het rapport (x van y QSO's tellen); de matrix
+verandert **niet** — incrementeel en volledig geven hetzelfde (§9.2).
 
-**E5. Persistentie van overrides**
+**E5. Persistentie**
 Zet een override, herstart de app.
 ✅ *Verwacht:* override staat er nog; wissen na herstart werkt ook.
+
+> Liever via de command line? Gebruik in PowerShell **`curl.exe`** (niet
+> `curl`, dat is daar een alias die de JSON-quotes breekt) of gewoon cmd.
 
 ## Deel F — ADIF (API/CLI; knop volgt)
 
@@ -245,14 +266,105 @@ status* maakt hem weer groen. Herstart de app: de override staat er nog.
 **H7. Foutafhandeling** — maak een velddag met einde vóór start.
 ✅ *Verwacht:* nette foutmelding in het paneel, geen crash.
 
-## Deel I — *(gepland, per komende fase)*
+## Deel I — Instellingen en huisstijl (fase 13)
 
-- **Fase 13**: settings-UI (taal, UDP, kleuren, strict matching — met test:
-  strict aan + hersync verandert de matrix zoals verwacht)
-- **Fase 15**: CSV-export (opent in Excel, juiste kolommen) en PDF-export
-  (landschap, matrix gesplitst bij veel banden)
-- **Fase 16**: publicatie naar GitHub Pages (token in keyring, publieke
-  pagina ververst binnen 30 s, opmerkingen weggelaten indien ingesteld)
+**I1. WLD-stijl** — open de pagina.
+✅ *Verwacht:* donkerblauwe (navy) topbalk met het witte **WLD**-lettermerk
+en teal scheidingsstreepje; teal accenten (live-stip, actieve tab,
+voortgangsbalkjes); oranje foutmeldingen.
+
+**I2. Kleuren wijzigen** — Manage → Settings → kies voor "Worked (N1MM)"
+een andere kleur en bewaar.
+✅ *Verwacht:* alle groene cellen en de legende nemen meteen de nieuwe
+kleur aan; na herstart staat ze er nog.
+
+**I3. Strict matching** — vink strict aan en bewaar.
+✅ *Verwacht:* de matrix herrekent meteen; rijen tonen nu de volledige
+roepnaam mét /P; een eerder los gematcht QSO zonder /P telt niet meer.
+Uitvinken herstelt alles.
+
+**I4. UDP-adres wijzigen** — zet de poort op 12061 en bewaar.
+✅ *Verwacht:* melding dat de ontvanger herstart is; het testtool met
+`--port 12061` komt binnen, op 12060 niet meer. Zet terug op 12060.
+
+**I5. Freshness** — zet "stale after" op 10 s en stuur even niets.
+✅ *Verwacht:* bron-PC's worden na 10 s STALE; na een nieuw pakket weer
+LIVE.
+
+**I6. Taal** — kies NL en bewaar.
+✅ *Verwacht:* instelling wordt onthouden (zichtbaar na herladen); teksten
+blijven Engels tot de vertalingen er zijn (fase 17).
+
+## Deel J — Station toevoegen, afsluiten, export (fase 15)
+
+**J1. Station toevoegen** — klik **+ Station** in de filterbalk, vul
+`ON9TST/P` in en bewaar.
+✅ *Verwacht:* popup "Station added."; nieuwe rij onderaan de matrix; blijft
+staan na her-import van de Excel (manuele stations verdwijnen nooit).
+
+**J2. Duplicaat geweigerd** — voeg `ON4BAF` toe (lijst heeft `ON4BAF/P`).
+✅ *Verwacht:* oranje popup dat dit hetzelfde station is.
+
+**J3. Velddag afsluiten** — Manage → Close field day → bevestig.
+✅ *Verwacht:* oranje **CLOSED**-badge bovenaan; testtool-QSO's komen niet
+meer binnen; celklik toont geen override-knoppen; ADIF-import geeft een
+nette weigering. Herstart de app: nog steeds CLOSED.
+
+**J4. Heropenen** — Manage → Reopen field day → bevestig.
+✅ *Verwacht:* badge weg; een test-QSO komt meteen weer binnen.
+
+**J5. PDF-export** — Manage → Export PDF.
+✅ *Verwacht:* download opent; A4 **liggend**; WLD-kopband; matrix past op
+de paginabreedte; kleuren + letters (X/M/m/–) kloppen met het scherm; bij
+38 stations loopt de tabel door op pagina 2 met herhaalde kopregel.
+
+**J6. CSV-export** — Manage → Export CSV; open in Excel.
+✅ *Verwacht:* dubbelklik opent correct (puntkomma's, accenten ok); één
+rij per station+band; gewerkte rijen tonen bron-PC, mode, frequentie en
+UTC-tijd.
+
+**J7. Exportmap** — Settings → Export folder instellen op bv.
+`C:\N1MM-Tracker\exports`, opnieuw exporteren.
+✅ *Verwacht:* kopieën verschijnen in die map.
+
+## Deel K — Publicatie naar GitHub Pages (fase 16)
+
+**K1. Opzet** — doorloop stap 1–4 van handleiding hoofdstuk 13b (repo
+`velddag-live`, Pages aan, fine-grained token met enkel Contents R/W op
+die ene repo, token opslaan in de tracker).
+✅ *Verwacht:* na *Store token* staat er "(token configured)"; de publieke
+URL verschijnt onder de knoppen.
+
+**K2. Eerste publicatie** — klik **Publish now**.
+✅ *Verwacht:* popup "Published: 4 uploaded, 0 unchanged."; in de repo op
+github.com staan `snapshot.json`, `index.html`, `app.js`, `style.css`.
+
+**K3. Publieke pagina** — open de Pages-URL (evt. 1–2 min wachten bij de
+allereerste keer) op je gsm.
+✅ *Verwacht:* dezelfde matrix in WLD-stijl, **zonder** Manage-knop en
+zonder override-knoppen; indicator zegt "Public view"; pagina ververst
+zichzelf (log een QSO, publiceer, en zie hem binnen ±30 s verschijnen
+zonder F5).
+
+**K4. Privacy** — zet een opmerking bij een station, publiceer, en bekijk
+`snapshot.json` in de repo.
+✅ *Verwacht:* de opmerking staat er **niet** in (standaard weggelaten);
+met het vinkje aan wél.
+
+**K5. Ongewijzigd overslaan** — klik tweemaal kort na elkaar Publish now.
+✅ *Verwacht:* tweede keer "0–1 uploaded, 3+ unchanged" (statische
+bestanden worden geskipt).
+
+**K6. Automatisch** — interval op 2 minuten, vinkje aan, opslaan. Log
+QSO's en wacht.
+✅ *Verwacht:* de publieke pagina volgt vanzelf, zonder klikken.
+
+**K7. Offline-gedrag** — trek de internetkabel uit en klik Publish now.
+✅ *Verwacht:* nette oranje foutpopup na de automatische herpogingen; de
+tracker zelf blijft gewoon doorwerken; met internet terug lukt het weer.
+
+## Deel L — *(gepland, per komende fase)*
+
 - **Fase 17**: taalwissel en/nl/fr/es in de webview
 - **Fase 18**: .exe-build (start zonder Python; Defender-melding wegklikken)
 - **Fase 19**: het volledige end-to-end-scenario uit §11.1 van de spec, in
@@ -260,4 +372,4 @@ status* maakt hem weer groen. Herstart de app: de override staat er nog.
 
 ---
 
-*Testplan bijgewerkt bij: fase 12.*
+*Testplan bijgewerkt bij: fase 16.*

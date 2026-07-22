@@ -232,6 +232,15 @@ Volledig uitgelegd in de **handleiding hoofdstuk 7**; samengevat:
 
 ---
 
+## STAP 12 — Live publiceren voor het publiek
+
+Volledig stappenplan in **handleiding hoofdstuk 13b**: repo `velddag-live`
+aanmaken, GitHub Pages aanzetten, fine-grained token maken (enkel Contents
+lezen/schrijven op die ene repo!) en in de tracker opslaan. Daarna is het
+één knop: **Publish now** — of automatisch elke N minuten.
+
+---
+
 ## Welk document waarvoor?
 
 | Bestand (in `docs\`) | Voor wie / wat |
@@ -262,4 +271,4 @@ git add -A && git commit -m "fase X" && git push :: naar GitHub
 
 ---
 
-*Draaiboek bijgewerkt bij: fase 12.*
+*Draaiboek bijgewerkt bij: fase 16.*

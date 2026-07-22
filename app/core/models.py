@@ -144,6 +144,7 @@ class FieldDay:
     updated_at: datetime = field(default_factory=utc_now)
     remarks: str = ""
     operator_notes: str = ""
+    closed: bool = False  # closed field day: viewing only, no changes
 
     def __post_init__(self) -> None:
         self.validate()
@@ -194,6 +195,7 @@ class FieldDay:
             "updated_at": to_iso_z(self.updated_at),
             "remarks": self.remarks,
             "operator_notes": self.operator_notes,
+            "closed": self.closed,
         }
 
     @classmethod
@@ -220,6 +222,7 @@ class FieldDay:
             updated_at=parse_iso_z(data.get("updated_at"), "FieldDay.updated_at") or utc_now(),
             remarks=str(data.get("remarks", "")),
             operator_notes=str(data.get("operator_notes", "")),
+            closed=bool(data.get("closed", False)),
         )
 
 
@@ -427,7 +430,9 @@ class PublishSettings:
     repo: str = ""
     branch: str = "main"
     path: str = ""
-    auto_interval_minutes: int = 0  # 0 = manual publishing only
+    auto_interval_minutes: int = 0     # 0 = manual publishing only
+    include_private: bool = False      # §10.3: remarks/notes weglaten = default
+    api_base: str = ""                 # leeg = api.github.com (tests overschrijven)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -436,6 +441,8 @@ class PublishSettings:
             "branch": self.branch,
             "path": self.path,
             "auto_interval_minutes": self.auto_interval_minutes,
+            "include_private": self.include_private,
+            "api_base": self.api_base,
         }
 
     @classmethod
@@ -447,6 +454,8 @@ class PublishSettings:
             branch=str(data.get("branch", "main")),
             path=str(data.get("path", "")),
             auto_interval_minutes=int(data.get("auto_interval_minutes", 0)),
+            include_private=bool(data.get("include_private", False)),
+            api_base=str(data.get("api_base", "")),
         )
 
 

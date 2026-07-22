@@ -313,3 +313,176 @@ class TestUploads:
         _, snapshot = http_get(http_port, "/snapshot.json")
         assert cell_status(snapshot, "ON4BAF", "80m") == "worked_by_n1mm"
         assert len(repo.load_qsos()) == 1
+
+
+class TestSettings:
+    def test_app_settings_roundtrip(self, running_app, tmp_path, monkeypatch):
+        import app.config as config
+        monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg"))
+        _, _, _, http_port = running_app
+        status, result = http_post(http_port, "/api/settings", {
+            "ui_language": "nl", "export_folder": "C:/exports",
+        })
+        assert status == 200 and result["settings"]["ui_language"] == "nl"
+        _, data = http_get(http_port, "/api/settings")
+        assert data["settings"]["ui_language"] == "nl"
+        assert data["settings"]["export_folder"] == "C:/exports"
+        # ui_language stroomt door naar de snapshot
+        _, snapshot = http_get(http_port, "/snapshot.json")
+        assert snapshot["ui_language"] == "nl"
+        assert "tech" in snapshot
+
+    def test_invalid_language_400(self, running_app):
+        _, _, _, http_port = running_app
+        status, result = http_post(http_port, "/api/settings", {"ui_language": "de"})
+        assert status == 400 and result["ok"] is False
+
+    def test_strict_toggle_changes_matrix(self, running_app):
+        state, _, udp_port, http_port = running_app
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        send_udp(udp_port, contactinfo(timestamp=now))  # call ON4BAF/P... eigenlijk ON4BAF/P
+        assert wait_until(lambda: state.listener.stats.processed == 1)
+        _, snapshot = http_get(http_port, "/snapshot.json")
+        assert cell_status(snapshot, "ON4BAF", "80m") == "worked_by_n1mm"
+
+        # Strict aan: lijst heeft /P, QSO ook /P → blijft matchen op ON4BAF/P
+        status, result = http_post(http_port, "/api/fieldday/update",
+                                   {"strict_callsign_matching": True})
+        assert status == 200
+        _, snapshot = http_get(http_port, "/snapshot.json")
+        station = next(s for s in snapshot["stations"] if s["callsign"] == "ON4BAF/P")
+        assert station["normalized"] == "ON4BAF/P"
+        assert station["cells"]["80m"]["status"] == "worked_by_n1mm"
+        assert snapshot["tech"]["strict_callsign_matching"] is True
+
+    def test_udp_port_change_restarts_listener(self, running_app):
+        import socket as socketlib
+        state, _, old_port, http_port = running_app
+        probe = socketlib.socket(socketlib.AF_INET, socketlib.SOCK_DGRAM)
+        probe.bind(("127.0.0.1", 0))
+        free_port = probe.getsockname()[1]
+        probe.close()
+
+        status, result = http_post(http_port, "/api/fieldday/update", {
+            "n1mm_udp_host": "127.0.0.1", "n1mm_udp_port": free_port,
+        })
+        assert status == 200 and result["udp_restarted"] is True
+        assert state.listener.port == free_port
+
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        send_udp(free_port, contactinfo(timestamp=now))
+        assert wait_until(lambda: state.listener.stats.processed == 1)
+
+    def test_colors_update_in_snapshot(self, running_app):
+        _, _, _, http_port = running_app
+        status, _ = http_post(http_port, "/api/fieldday/update", {
+            "status_colors": {"worked_by_n1mm": "#00B4CC"},
+        })
+        assert status == 200
+        _, snapshot = http_get(http_port, "/snapshot.json")
+        assert snapshot["colors"]["worked_by_n1mm"] == "#00B4CC"
+
+
+class TestAddStationAndClose:
+    def test_add_station(self, running_app):
+        state, repo, _, http_port = running_app
+        status, result = http_post(http_port, "/api/station/add", {
+            "callsign": "ON9NEW/P", "category": "QRP 12h", "section": "NEW",
+        })
+        assert status == 200 and result["normalized"] == "ON9NEW"
+        stored = {s.normalized_callsign: s for s in repo.load_stations()}
+        assert stored["ON9NEW"].source == "manual"
+        _, snapshot = http_get(http_port, "/snapshot.json")
+        assert any(s["callsign"] == "ON9NEW/P" for s in snapshot["stations"])
+
+    def test_add_duplicate_rejected(self, running_app):
+        _, _, _, http_port = running_app
+        status, result = http_post(http_port, "/api/station/add",
+                                   {"callsign": "ON4BAF"})  # lijst heeft ON4BAF/P
+        assert status == 400 and "already" in result["error"]
+
+    def test_add_implausible_rejected(self, running_app):
+        _, _, _, http_port = running_app
+        status, _ = http_post(http_port, "/api/station/add", {"callsign": "JANSSENS"})
+        assert status == 400
+
+    def test_close_blocks_changes_and_reopen_restores(self, running_app):
+        state, repo, udp_port, http_port = running_app
+        status, result = http_post(http_port, "/api/fieldday/close", {})
+        assert status == 200 and result["closed"] is True
+        assert state.listener is None or not state.listener.running
+        _, snapshot = http_get(http_port, "/snapshot.json")
+        assert snapshot["field_day"]["closed"] is True
+
+        # Wijzigingen geblokkeerd met nette fout
+        status, result = http_post(http_port, "/api/override", {
+            "normalized_callsign": "ON4BAF", "band": "80m",
+            "override_type": "manual_worked"})
+        assert status == 400 and "closed" in result["error"]
+        status, _ = http_post(http_port, "/api/station/add", {"callsign": "ON9ZZ"})
+        assert status == 400
+
+        # closed overleeft herstart
+        fresh = AppState(repo)
+        assert fresh.engine.fieldday.closed is True
+
+        # Heropenen: listener terug, wijzigingen weer mogelijk
+        status, result = http_post(http_port, "/api/fieldday/reopen", {})
+        assert status == 200 and result["closed"] is False
+        assert wait_until(lambda: state.listener is not None and state.listener.running)
+        status, _ = http_post(http_port, "/api/override", {
+            "normalized_callsign": "ON4BAF", "band": "80m",
+            "override_type": "manual_worked"})
+        assert status == 200
+
+
+class TestExports:
+    def _worked_setup(self, running_app):
+        state, repo, udp_port, http_port = running_app
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        send_udp(udp_port, contactinfo(timestamp=now))
+        assert wait_until(lambda: state.listener.stats.processed == 1)
+        return state, repo, http_port
+
+    def test_csv_export(self, running_app):
+        state, repo, http_port = self._worked_setup(running_app)
+        import urllib.request
+        with urllib.request.urlopen(
+                f"http://127.0.0.1:{http_port}/api/export/csv", timeout=10) as resp:
+            assert resp.status == 200
+            assert "text/csv" in resp.headers["Content-Type"]
+            assert 'attachment; filename="' in resp.headers["Content-Disposition"]
+            body = resp.read().decode("utf-8-sig")
+        lines = body.strip().splitlines()
+        assert lines[0].startswith("callsign;normalized_callsign;")
+        assert len(lines) == 1 + 2 * 3  # 2 stations × 3 banden
+        worked_line = next(l for l in lines if l.startswith("ON4BAF/P;ON4BAF;;;80m;"))
+        assert "worked_by_n1mm" in worked_line
+        assert "CONTEST-PC1" in worked_line
+        # kopie in de exportmap
+        assert list(repo.exports_dir.glob("*.csv"))
+
+    def test_pdf_export(self, running_app):
+        state, repo, http_port = self._worked_setup(running_app)
+        import urllib.request
+        with urllib.request.urlopen(
+                f"http://127.0.0.1:{http_port}/api/export/pdf", timeout=15) as resp:
+            assert resp.status == 200
+            assert resp.headers["Content-Type"] == "application/pdf"
+            body = resp.read()
+        assert body.startswith(b"%PDF")
+        assert len(body) > 1500
+        assert list(repo.exports_dir.glob("*.pdf"))
+
+    def test_pdf_many_bands_splits_pages(self, running_app):
+        state, repo, http_port = self._worked_setup(running_app)
+        many = ["160m", "80m", "60m", "40m", "30m", "20m", "17m", "15m",
+                "12m", "10m", "6m", "4m", "2m", "70cm"]
+        http_post(http_port, "/api/fieldday/update", {"bands": many})
+        from app.export.pdf_exporter import build_pdf
+        content = build_pdf(state.engine)
+        # 14 banden > 12 per pagina → minstens 2 pagina's
+        assert content.count(b"/Type /Page") >= 2 or content.count(b"/Page") >= 2

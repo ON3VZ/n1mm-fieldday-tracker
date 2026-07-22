@@ -113,6 +113,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     listener_ok = state.start_listener(host=args.udp_host, port=args.udp_port)
+    state.start_auto_publish()
     if not listener_ok:
         print(f"WARNING: UDP listener could not start "
               f"({state.listener.bind_error}). QSOs will not arrive live; "

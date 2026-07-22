@@ -103,6 +103,7 @@ def build_snapshot(
         "end_utc": to_iso_z(fieldday.end_utc),
         "display_timezone": fieldday.display_timezone,
         "bands": bands,
+        "closed": fieldday.closed,
     }
     if include_private:
         field_day_block["remarks"] = fieldday.remarks

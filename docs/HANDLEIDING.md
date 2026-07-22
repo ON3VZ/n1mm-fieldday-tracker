@@ -21,7 +21,9 @@
 11. [ADIF-import](#11-adif-import) *(volgt)*
 12. [Exporteren naar CSV en PDF](#12-exporteren-naar-csv-en-pdf) *(volgt)*
 13. [Publiceren naar GitHub Pages](#13-publiceren-naar-github-pages) *(volgt)*
-14. [Hoe werkt het technisch?](#14-hoe-werkt-het-technisch)\n15. [Problemen oplossen](#15-problemen-oplossen)
+14. [Hoe werkt het technisch?](#14-hoe-werkt-het-technisch)
+15. [Wat als de app crasht?](#15-wat-als-de-app-crasht-tijdens-de-velddag)
+16. [Problemen oplossen](#16-problemen-oplossen)
 
 ---
 
@@ -329,11 +331,120 @@ duplicaat herkend en er verandert niets. Dubbel tellen kan sowieso niet —
 
 ## 12. Exporteren naar CSV en PDF
 
-*(volgt in fase 15)*
+Manage → **Export**:
 
-## 13. Publiceren naar GitHub Pages
+- **Export PDF** — de volledige matrix op **A4 liggend**, passend op de
+  paginabreedte, in WLD-stijl: kopband met logo, velddaggegevens,
+  samenvattende cijfers, legende en de matrix met de statuskleuren. Naast
+  kleur staat in elke cel ook een letter (X = gewerkt, M = manueel
+  gewerkt, m = manueel niet gewerkt, – = uitgesloten) zodat de afdruk ook
+  in zwart-wit leesbaar blijft. Bij heel veel banden splitst de matrix
+  automatisch over meerdere pagina's; lange lijsten lopen door met
+  herhaalde kopregel.
+- **Export CSV** — één rij per station+band met alle details (status,
+  bron-PC, mode, frequentie, tijdstip, manuele status, opmerkingen).
+  Opent rechtstreeks correct in Belgische Excel.
 
-*(volgt in fase 16)*
+Beide downloads verschijnen in je browser én er wordt een kopie bewaard in
+de exportmap (instelbaar in Settings; standaard de `exports\`-map van de
+velddag).
+
+### Station manueel toevoegen (+)
+
+Rechts in de filterbalk staat **+ Station**. Die opent het paneel bij
+"Add station manually": roepnaam (verplicht) plus optioneel categorie,
+sectie en opmerking. Handig voor een station dat op de dag zelf nog
+aansluit. Manueel toegevoegde stations verdwijnen nooit bij een
+her-import van de Excel.
+
+### Velddag afsluiten en heropenen
+
+Manage → **Close field day** (met bevestiging): de velddag gaat op slot —
+bekijken en exporteren kan nog, maar er komen geen QSO's meer binnen en
+manuele wijzigingen en imports worden geweigerd. Bovenaan verschijnt een
+oranje **CLOSED**-badge. **Reopen field day** (ook met bevestiging) maakt
+alles weer actief, inclusief de UDP-ontvangst.
+
+## 13. Instellingen
+
+Open **Manage** en scrol naar **Settings**:
+
+- **Taal** — Engels/Nederlands/Frans/Spaans (de vertalingen zelf volgen in
+  een latere update; tot dan blijft de tekst Engels).
+- **UDP listen address** — `127.0.0.1` (veilig: enkel deze laptop) of
+  `0.0.0.0` (ook andere N1MM-PC's op het netwerk mogen sturen). Poort
+  standaard `12060`. Na opslaan herstart de ontvanger vanzelf op het
+  nieuwe adres.
+- **Stale after** — na hoeveel seconden stilte een bron-PC als STALE
+  gemarkeerd wordt.
+- **Strict callsign matching** — normaal UIT: `ON4BAF/P` en `ON4BAF` zijn
+  hetzelfde station. Zet je dit aan, dan telt enkel de exacte roepnaam en
+  wordt de matrix meteen herrekend.
+- **Statuskleuren** — kies per status je eigen kleur; het ✎-symbool blijft
+  altijd zichtbaar als niet-kleurgebonden markering.
+- **Export folder** — waar CSV/PDF-exports terechtkomen (volgt).
+
+## 13b. Publiceren naar GitHub Pages
+
+Hiermee kan iedereen — thuisblijvers, familie, andere secties — live
+meevolgen op een gewone webpagina die zichzelf elke 30 seconden ververst.
+
+> ⚠️ **De gepubliceerde pagina is openbaar.** Iedereen met de link ziet de
+> roepnamen en de gewerkt-status. Opmerkingen en operatornotities worden
+> **standaard weggelaten**; enkel als je het vinkje "Include remarks…"
+> aanzet gaan ze mee.
+
+### Eenmalige opzet (ook voor andere clubs die dit willen gebruiken)
+
+**Stap 1 — GitHub-account en repo**
+1. Maak (indien nodig) een gratis account op github.com.
+2. Klik rechtsboven **+** → *New repository*. Naam bv. **`velddag-live`**.
+   Zet op **Public**, vink *Add a README* aan, klik *Create repository*.
+
+**Stap 2 — GitHub Pages aanzetten**
+1. In die repo: **Settings → Pages**.
+2. Bij *Source*: kies **Deploy from a branch**; branch **main**, map
+   **/ (root)**; *Save*.
+3. Na een minuutje staat bovenaan je publieke adres:
+   `https://<jouwnaam>.github.io/velddag-live/`
+
+**Stap 3 — Fine-grained token aanmaken (de "sleutel")**
+1. GitHub: klik je profielfoto → **Settings** → helemaal onderaan
+   **Developer settings** → **Personal access tokens** →
+   **Fine-grained tokens** → *Generate new token*.
+2. Naam: `velddag-tracker`. Vervaldatum: bv. 90 dagen.
+3. **Repository access**: *Only select repositories* → kies enkel
+   **velddag-live**.
+4. **Permissions → Repository permissions → Contents: Read and write.**
+   Verder niets.
+5. *Generate token* en **kopieer hem meteen** (hij wordt maar één keer
+   getoond).
+
+**Stap 4 — In de tracker koppelen**
+1. Manage → **Publish to GitHub Pages**.
+2. Plak het token in het tokenveld en klik **Store token** — het wordt
+   veilig in de wachtwoordkluis van je besturingssysteem bewaard (Windows
+   Credential Manager), nooit in een bestand.
+3. Vul *Repository* in (`jouwnaam/velddag-live`), branch `main`, map leeg.
+4. Kies het interval (bv. elke 2 minuten) en vink *Automatic publishing*
+   aan — of werk enkel met de knop **Publish now**.
+5. Klik **Save publish settings**, dan **Publish now**. Popup meldt het
+   resultaat; de link naar de publieke pagina staat eronder.
+
+**Geen wachtwoordkluis (kale Linux-server)?** Zet dan de
+omgevingsvariabele `N1MM_TRACKER_GH_TOKEN` met het token als waarde.
+
+### Hoe het werkt
+
+Bij elke publicatie gaan `snapshot.json` en de webpagina zelf naar de
+repo; ongewijzigde bestanden worden overgeslagen. De publieke pagina is
+exact dezelfde als je lokale, maar **alleen-lezen** — geen knoppen, geen
+overrides. Netwerkfouten worden automatisch opnieuw geprobeerd en
+blokkeren de tracker nooit.
+
+> **Meerdere tracker-laptops** die via GitHub samenvloeien staat bewust
+> **niet** in deze versie; het ontwerp staat klaar op de roadmap (zie
+> README). Meerdere N1MM-PC's naar één tracker kan vandaag al gewoon.
 
 ## 14. Hoe werkt het technisch?
 
@@ -345,7 +456,26 @@ statusbeslissing per cel, en de volledige lijst van API-endpoints. Kort:
 in gewone JSON-bestanden die atomisch geschreven worden; en één webpagina
 die zowel lokaal als publiek dezelfde `snapshot.json` leest.
 
-## 15. Problemen oplossen
+## 15. Wat als de app crasht tijdens de velddag?
+
+Geen paniek — het systeem is hierop gebouwd:
+
+- **Elk QSO wordt onmiddellijk en veilig op schijf bewaard** op het moment
+  dat het binnenkomt (atomisch: er kan nooit een half bestand ontstaan,
+  zelfs niet bij stroomuitval midden in een schrijfactie).
+- **Herstarten** = het programma opnieuw starten (dubbelklik of
+  `python -m app.main`). Gemeten hersteltijd: **minder dan een seconde**
+  tot de pagina weer werkt; reken met browser erbij op enkele seconden.
+- Na de herstart staat **alles** er terug: alle QSO's, manuele statussen,
+  instellingen en de deelnemerslijst. QSO's die tijdens de uitval in N1MM
+  gelogd werden, haal je binnen met een **ADIF-import** (hoofdstuk 11) —
+  daar is die functie precies voor.
+- Als allerlaatste vangnet staat elk ontvangen pakket ruw in
+  `raw_packets.log` in de velddagmap.
+
+Test dit gerust zelf vooraf: testplan **A6**.
+
+## 16. Problemen oplossen
 
 ### `python` wordt niet herkend (Windows)
 
@@ -386,6 +516,5 @@ Overloop in deze volgorde:
 
 ---
 
-*Handleiding bijgewerkt bij: fase 12 (nieuw: hoofdstuk 8 — velddagbeheer,
-imports en manual overrides via het Manage-paneel; hoofdstuk 14 verwijst
-naar de architectuurdocumentatie).*
+*Handleiding bijgewerkt bij: fase 16 (nieuw: hoofdstuk 13b — publiceren naar
+GitHub Pages, inclusief het volledige stappenplan voor andere clubs).*

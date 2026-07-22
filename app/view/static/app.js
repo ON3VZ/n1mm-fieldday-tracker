@@ -116,6 +116,56 @@ const STRINGS = {
     "ov.exclude": "Exclude",
     "ov.clear": "Clear manual status",
     "ov.reason": "Reason (optional)",
+    "set.title": "Settings",
+    "set.language": "Language (translations follow in a later update)",
+    "set.udphost": "UDP listen address (127.0.0.1 = this laptop only, 0.0.0.0 = also other PCs)",
+    "set.udpport": "UDP port",
+    "set.fresh": "Stale after (seconds without packets)",
+    "set.strict": "Strict callsign matching (ON4BAF/P ≠ ON4BAF)",
+    "set.colors": "Status colors",
+    "set.savefd": "Save technical settings",
+    "set.exportfolder": "Export folder (empty = default)",
+    "set.saveapp": "Save app settings",
+    "set.udprestarted": "Saved — UDP listener restarted on the new address.",
+    "filter.clear": "Clear all filters",
+    "manage.adifperiodhint": "Tip: these QSOs fall outside the field day period — check the start/end of the field day (Manage → Edit).",
+    "addst.button": "+ Station",
+    "addst.title": "Add station manually",
+    "addst.call": "Callsign (required)",
+    "addst.category": "Category",
+    "addst.section": "Section",
+    "addst.remarks": "Remarks",
+    "addst.save": "Add station",
+    "addst.added": "Station added.",
+    "close.title": "Close / reopen field day",
+    "close.button": "Close field day",
+    "close.confirm": "Close this field day? Viewing stays possible, but no new QSOs, imports or manual changes are accepted until you reopen it.",
+    "close.closed": "Field day closed.",
+    "reopen.button": "Reopen field day",
+    "reopen.confirm": "Reopen this field day? QSO reception and editing become possible again.",
+    "reopen.done": "Field day reopened — UDP reception restarted.",
+    "closed.badge": "CLOSED",
+    "export.title": "Export",
+    "export.pdf": "Export PDF (A4 landscape)",
+    "export.csv": "Export CSV",
+    "pub.title": "Publish to GitHub Pages",
+    "pub.warning": "Warning: the published page is PUBLIC. Anyone with the link sees callsigns and worked status. Remarks and operator notes are omitted unless you enable the option below.",
+    "pub.enabled": "Automatic publishing enabled",
+    "pub.repo": "Repository (owner/name, e.g. ON3VZ/velddag-live)",
+    "pub.branch": "Branch",
+    "pub.path": "Folder in the repo (empty = root)",
+    "pub.interval": "Publish every N minutes (0 = manual only)",
+    "pub.private": "Include remarks and operator notes on the public page",
+    "pub.token": "Fine-grained token (stored in the OS keyring, never shown again)",
+    "pub.savetoken": "Store token",
+    "pub.save": "Save publish settings",
+    "pub.now": "Publish now",
+    "pub.tokenok": "Token stored securely.",
+    "pub.result": "Published: {up} uploaded, {skip} unchanged.",
+    "pub.resulterr": "Publish failed: {e}",
+    "pub.pagesurl": "Public page:",
+    "pub.tokenset": "token configured",
+    "pub.notoken": "no token yet",
   },
 };
 
@@ -275,6 +325,10 @@ function fmtUtc(iso) {
 function render() {
   if (!state.snapshot) return;
   const snap = state.snapshot;
+  if (snap.ui_language && snap.ui_language !== lang) {
+    lang = STRINGS[snap.ui_language] ? snap.ui_language : "en";
+    applyStaticStrings();
+  }
   document.title = snap.field_day.name + " — Field Day Tracker";
   $("fd-name").textContent = snap.field_day.name;
   $("fd-callsign").textContent = snap.field_day.event_callsign;
@@ -282,6 +336,8 @@ function render() {
     fmtUtc(snap.field_day.start_utc) + " → " + fmtUtc(snap.field_day.end_utc) + " UTC";
 
   renderLivebar();
+  ensureAddButton();
+  renderClosedBadge();
   renderFilterOptions();
   renderTabs();
   renderLegend();
@@ -295,6 +351,17 @@ function render() {
   root.appendChild(views[state.view]());
 }
 
+function ensureAddButton() {
+  if (state.snapshot.readonly) return;
+  if (!$("addst-open")) {
+    const button = document.createElement("button");
+    button.id = "addst-open";
+    button.className = "btn secondary";
+    button.textContent = t("addst.button");
+    $("filters").appendChild(button);
+  }
+}
+
 function renderTabs() {
   document.querySelectorAll(".tab").forEach((tab) => {
     tab.classList.toggle("active", tab.dataset.view === state.view);
@@ -304,18 +371,23 @@ function renderTabs() {
 
 function renderFilterOptions() {
   const snap = state.snapshot;
-  fillSelect($("f-band"), ["all", ...snap.field_day.bands],
-    (v) => (v === "all" ? t("filter.band.all") : v), state.filters.band);
+  fillSelect($("f-band"), "band", ["all", ...snap.field_day.bands],
+    (v) => (v === "all" ? t("filter.band.all") : v));
   const categories = [...new Set(snap.stations.map((s) => s.category).filter(Boolean))].sort();
-  fillSelect($("f-category"), ["all", ...categories],
-    (v) => (v === "all" ? t("filter.category.all") : v), state.filters.category);
+  fillSelect($("f-category"), "category", ["all", ...categories],
+    (v) => (v === "all" ? t("filter.category.all") : v));
   const sections = [...new Set(snap.stations.map((s) => s.section).filter(Boolean))].sort();
-  fillSelect($("f-section"), ["all", ...sections],
-    (v) => (v === "all" ? t("filter.section.all") : v), state.filters.section);
+  fillSelect($("f-section"), "section", ["all", ...sections],
+    (v) => (v === "all" ? t("filter.section.all") : v));
 }
 
-function fillSelect(select, values, label, current) {
-  const previous = select.value;
+function fillSelect(select, filterKey, values, label) {
+  // Keep the visible select and the internal filter state in lockstep:
+  // a stale value (e.g. a category that vanished after a re-import) must
+  // reset to "all", never linger invisibly and filter everything out.
+  if (!values.includes(state.filters[filterKey])) {
+    state.filters[filterKey] = "all";
+  }
   select.innerHTML = "";
   for (const value of values) {
     const option = document.createElement("option");
@@ -323,7 +395,44 @@ function fillSelect(select, values, label, current) {
     option.textContent = label(value);
     select.appendChild(option);
   }
-  select.value = values.includes(current) ? current : (previous || "all");
+  select.value = state.filters[filterKey];
+}
+
+function anyFilterActive() {
+  const f = state.filters;
+  return f.search.trim() !== "" || f.status !== "all" || f.band !== "all" ||
+    f.category !== "all" || f.section !== "all";
+}
+
+function clearFilters() {
+  state.filters = { search: "", status: "all", band: "all",
+                    category: "all", section: "all" };
+  $("f-search").value = "";
+  $("f-status").value = "all";
+  render();
+}
+
+function emptyStateHtml(messageKey) {
+  let html = '<div class="empty">' + esc(t(messageKey));
+  if (anyFilterActive()) {
+    html += '<br><button class="btn secondary" id="clear-filters" style="margin-top:0.7rem">' +
+      esc(t("filter.clear")) + "</button>";
+  }
+  return html + "</div>";
+}
+
+function renderClosedBadge() {
+  const closed = state.snapshot.field_day.closed;
+  let badge = $("closed-badge");
+  if (closed && !badge) {
+    badge = document.createElement("span");
+    badge.id = "closed-badge";
+    badge.className = "closed-badge";
+    badge.textContent = t("closed.badge");
+    document.querySelector(".topbar-brand").appendChild(badge);
+  } else if (!closed && badge) {
+    badge.remove();
+  }
 }
 
 function renderLegend() {
@@ -350,7 +459,7 @@ function renderMatrix() {
   const wrap = document.createElement("div");
   wrap.className = "matrix-wrap";
   if (stations.length === 0) {
-    wrap.innerHTML = '<div class="empty">' + esc(t("matrix.none")) + "</div>";
+    wrap.innerHTML = emptyStateHtml("matrix.none");
     return wrap;
   }
 
@@ -411,7 +520,7 @@ function renderToWork() {
   }
   const container = document.createElement("div");
   if (rows.length === 0) {
-    container.innerHTML = '<div class="empty">' + esc(t("towork.none")) + "</div>";
+    container.innerHTML = emptyStateHtml("towork.none");
     return container;
   }
   const { key, dir } = state.sort;
@@ -686,7 +795,7 @@ function showCellDetail(normalized, band) {
     if (cell.set_by) html += " (" + esc(t("detail.setby")) + " " + esc(cell.set_by) + ")";
     html += "</p>";
   }
-  if (!state.snapshot.readonly) {
+  if (!state.snapshot.readonly && !state.snapshot.field_day.closed) {
     html += '<h4>' + esc(t("ov.title")) + '</h4>' +
       '<input class="reason" id="ov-reason" type="text" placeholder="' +
       esc(t("ov.reason")) + '">' +
@@ -721,9 +830,10 @@ async function handleOverrideClick(target) {
       await api("/api/override/clear", { normalized_callsign: call, band: band });
     }
     $("detail").hidden = true;
+    showToast("ok", t("manage.done"));
     await refreshNow();
   } catch (err) {
-    alert(t("manage.error", { e: err.message }));
+    showToast("warn", t("manage.error", { e: err.message }));
   }
 }
 
@@ -748,6 +858,7 @@ document.addEventListener("click", (event) => {
   const bandButton = event.target.closest("[data-pickband]");
   if (bandButton) { state.band = bandButton.dataset.pickband; render(); return; }
 
+  if (event.target.id === "clear-filters") { clearFilters(); return; }
   if (event.target.id === "detail-close") { $("detail").hidden = true; }
 });
 
@@ -788,11 +899,59 @@ function toUtcIso(localValue) {
 }
 
 let manageMsg = null; // {kind, text}
+let toastTimer = null;
+
+function showToast(kind, text) {
+  let toast = $("toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "toast";
+    document.body.appendChild(toast);
+  }
+  toast.className = "toast " + kind;
+  toast.textContent = text;
+  toast.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toast.hidden = true; }, 8000);
+}
+let managePublish = { enabled: false, repo: "", branch: "main", path: "",
+                      interval: "0", includePrivate: false,
+                      tokenConfigured: false, pagesUrl: "" };
+let manageSettings = { udpHost: "", udpPort: "", fresh: "", strict: false,
+                       exportFolder: "", language: "en" };
+
+async function loadManageSettings() {
+  try {
+    const data = await (await fetch("/api/settings")).json();
+    const snap = state.snapshot;
+    manageSettings.exportFolder = data.settings.export_folder || "";
+    manageSettings.language = data.settings.ui_language || "en";
+  } catch (err) { /* defaults blijven */ }
+  try {
+    const pub = await (await fetch("/api/publish/status")).json();
+    managePublish.enabled = pub.settings.enabled;
+    managePublish.repo = pub.settings.repo;
+    managePublish.branch = pub.settings.branch;
+    managePublish.path = pub.settings.path;
+    managePublish.interval = String(pub.settings.auto_interval_minutes);
+    managePublish.includePrivate = pub.settings.include_private;
+    managePublish.tokenConfigured = pub.token_configured;
+    managePublish.pagesUrl = pub.pages_url;
+  } catch (err) { /* defaults */ }
+  const tech = state.snapshot ? state.snapshot.tech : null;
+  if (tech) {
+    manageSettings.udpHost = tech.n1mm_udp_host;
+    manageSettings.udpPort = String(tech.n1mm_udp_port);
+    manageSettings.fresh = String(tech.freshness_threshold_seconds);
+    manageSettings.strict = !!tech.strict_callsign_matching;
+  }
+}
 let pendingImport = null; // {filename, content_b64, missing:[]}
 
 async function openManage() {
   $("manage-drawer").hidden = false;
   $("drawer-backdrop").hidden = false;
+  await loadManageSettings();
   await renderManage();
 }
 function closeManage() {
@@ -875,6 +1034,86 @@ async function renderManage() {
     '<div class="row-btns"><button class="btn secondary" id="adif-pick">' +
     esc(t("manage.adifbtn")) + "</button></div>";
 
+  const fdFull = snap ? snap.field_day : null;
+  if (fdFull) {
+    html += "<h3>" + esc(t("set.title")) + "</h3>" +
+      '<label>' + esc(t("set.language")) + '</label><select id="set-lang">';
+    for (const code of ["en", "nl", "fr", "es"]) {
+      html += '<option value="' + code + '"' +
+        ((snap.ui_language || "en") === code ? " selected" : "") + ">" +
+        code.toUpperCase() + "</option>";
+    }
+    html += "</select>" +
+      '<label>' + esc(t("set.udphost")) + '</label>' +
+      '<input type="text" id="set-udphost" class="mono" value="' + esc(manageSettings.udpHost) + '">' +
+      '<label>' + esc(t("set.udpport")) + '</label>' +
+      '<input type="text" id="set-udpport" class="mono" value="' + esc(manageSettings.udpPort) + '">' +
+      '<label>' + esc(t("set.fresh")) + '</label>' +
+      '<input type="text" id="set-fresh" class="mono" value="' + esc(manageSettings.fresh) + '">' +
+      '<label><input type="checkbox" id="set-strict"' +
+      (manageSettings.strict ? " checked" : "") + "> " + esc(t("set.strict")) + "</label>" +
+      '<label>' + esc(t("set.colors")) + '</label><div class="bandboxes">';
+    for (const status of Object.keys(snap.legend)) {
+      html += '<label><input type="color" class="set-color" data-status="' + esc(status) +
+        '" value="' + esc((snap.colors[status] || "#ffffff")) + '"> ' +
+        esc(t("status." + status)) + "</label>";
+    }
+    html += '</div>' +
+      '<label>' + esc(t("set.exportfolder")) + '</label>' +
+      '<input type="text" id="set-export" value="' + esc(manageSettings.exportFolder) + '">' +
+      '<div class="row-btns"><button class="btn" id="set-save">' +
+      esc(t("set.savefd")) + "</button></div>";
+  }
+
+  html += "<h3>" + esc(t("addst.title")) + "</h3>" +
+    '<label>' + esc(t("addst.call")) + '</label><input type="text" id="as-call" class="mono">' +
+    '<label>' + esc(t("addst.category")) + '</label><input type="text" id="as-cat">' +
+    '<label>' + esc(t("addst.section")) + '</label><input type="text" id="as-sec">' +
+    '<label>' + esc(t("addst.remarks")) + '</label><input type="text" id="as-rem">' +
+    '<div class="row-btns"><button class="btn" id="as-save">' +
+    esc(t("addst.save")) + "</button></div>";
+
+  html += "<h3>" + esc(t("export.title")) + "</h3>" +
+    '<div class="row-btns">' +
+    '<button class="btn" id="exp-pdf">' + esc(t("export.pdf")) + "</button>" +
+    '<button class="btn secondary" id="exp-csv">' + esc(t("export.csv")) + "</button>" +
+    "</div>";
+
+  const isClosed = snap && snap.field_day.closed;
+  html += "<h3>" + esc(t("close.title")) + "</h3>" +
+    '<div class="row-btns">' +
+    (isClosed
+      ? '<button class="btn" id="fd-reopen">' + esc(t("reopen.button")) + "</button>"
+      : '<button class="btn danger" id="fd-close">' + esc(t("close.button")) + "</button>") +
+    "</div>";
+
+  html += "<h3>" + esc(t("pub.title")) + "</h3>" +
+    '<div class="msg warn">' + esc(t("pub.warning")) + "</div>" +
+    '<label><input type="checkbox" id="pub-enabled"' +
+    (managePublish.enabled ? " checked" : "") + "> " + esc(t("pub.enabled")) + "</label>" +
+    '<label>' + esc(t("pub.repo")) + '</label>' +
+    '<input type="text" id="pub-repo" class="mono" value="' + esc(managePublish.repo) + '">' +
+    '<label>' + esc(t("pub.branch")) + '</label>' +
+    '<input type="text" id="pub-branch" class="mono" value="' + esc(managePublish.branch) + '">' +
+    '<label>' + esc(t("pub.path")) + '</label>' +
+    '<input type="text" id="pub-path" class="mono" value="' + esc(managePublish.path) + '">' +
+    '<label>' + esc(t("pub.interval")) + '</label>' +
+    '<input type="text" id="pub-interval" class="mono" value="' + esc(managePublish.interval) + '">' +
+    '<label><input type="checkbox" id="pub-private"' +
+    (managePublish.includePrivate ? " checked" : "") + "> " + esc(t("pub.private")) + "</label>" +
+    '<label>' + esc(t("pub.token")) + " <em>(" +
+    esc(managePublish.tokenConfigured ? t("pub.tokenset") : t("pub.notoken")) + ")</em></label>" +
+    '<input type="password" id="pub-token" autocomplete="off">' +
+    '<div class="row-btns">' +
+    '<button class="btn secondary" id="pub-savetoken">' + esc(t("pub.savetoken")) + "</button>" +
+    '<button class="btn" id="pub-save">' + esc(t("pub.save")) + "</button>" +
+    '<button class="btn" id="pub-now">' + esc(t("pub.now")) + "</button>" +
+    "</div>" +
+    (managePublish.pagesUrl
+      ? "<p>" + esc(t("pub.pagesurl")) + ' <a href="' + esc(managePublish.pagesUrl) +
+        '" target="_blank" class="mono">' + esc(managePublish.pagesUrl) + "</a></p>"
+      : "");
+
   html += "<h3>" + esc(t("manage.synctitle")) + "</h3>" +
     '<div class="row-btns"><button class="btn secondary" id="sync-now">' +
     esc(t("manage.syncbtn")) + "</button></div>";
@@ -889,6 +1128,7 @@ async function manageAction(fn, okText) {
   } catch (err) {
     manageMsg = { kind: "warn", text: t("manage.error", { e: err.message }) };
   }
+  showToast(manageMsg.kind, manageMsg.text);
   await refreshNow();
   await renderManage();
 }
@@ -937,6 +1177,81 @@ document.addEventListener("click", async (event) => {
     return;
   }
   if (target.id === "imp-cancel") { pendingImport = null; renderManage(); return; }
+  if (target.id === "set-save") {
+    const colors = {};
+    document.querySelectorAll(".set-color").forEach((el) => {
+      colors[el.dataset.status] = el.value;
+    });
+    manageAction(async () => {
+      await api("/api/settings", {
+        ui_language: $("set-lang").value,
+        export_folder: $("set-export").value,
+      });
+      return api("/api/fieldday/update", {
+        n1mm_udp_host: $("set-udphost").value,
+        n1mm_udp_port: parseInt($("set-udpport").value, 10),
+        freshness_threshold_seconds: parseInt($("set-fresh").value, 10),
+        strict_callsign_matching: $("set-strict").checked,
+        status_colors: colors,
+      });
+    }, (r) => (r.udp_restarted ? t("set.udprestarted") : t("manage.done")));
+    return;
+  }
+  if (target.id === "addst-open") {
+    openManage().then(() => {
+      const field = $("as-call");
+      if (field) { field.scrollIntoView({ block: "center" }); field.focus(); }
+    });
+    return;
+  }
+  if (target.id === "as-save") {
+    manageAction(() => api("/api/station/add", {
+      callsign: $("as-call").value, category: $("as-cat").value,
+      section: $("as-sec").value, remarks: $("as-rem").value,
+    }), () => t("addst.added"));
+    return;
+  }
+  if (target.id === "exp-pdf") { window.open("/api/export/pdf", "_blank"); return; }
+  if (target.id === "exp-csv") { window.open("/api/export/csv", "_blank"); return; }
+  if (target.id === "fd-close") {
+    if (window.confirm(t("close.confirm"))) {
+      manageAction(() => api("/api/fieldday/close", {}), () => t("close.closed"));
+    }
+    return;
+  }
+  if (target.id === "fd-reopen") {
+    if (window.confirm(t("reopen.confirm"))) {
+      manageAction(() => api("/api/fieldday/reopen", {}), () => t("reopen.done"));
+    }
+    return;
+  }
+  if (target.id === "pub-savetoken") {
+    manageAction(async () => {
+      const result = await api("/api/publish/token", { token: $("pub-token").value });
+      $("pub-token").value = "";
+      return result;
+    }, () => t("pub.tokenok"));
+    return;
+  }
+  if (target.id === "pub-save") {
+    manageAction(() => api("/api/settings", { publish: {
+      enabled: $("pub-enabled").checked,
+      repo: $("pub-repo").value.trim(),
+      branch: $("pub-branch").value.trim() || "main",
+      path: $("pub-path").value.trim(),
+      auto_interval_minutes: parseInt($("pub-interval").value, 10) || 0,
+      include_private: $("pub-private").checked,
+    }}), () => t("manage.done"));
+    return;
+  }
+  if (target.id === "pub-now") {
+    manageAction(async () => {
+      const result = await api("/api/publish/now", {});
+      if (!result.ok) throw new Error((result.errors || [result.error]).join("; "));
+      return result;
+    }, (r) => t("pub.result", { up: r.uploaded.length, skip: r.skipped.length }));
+    return;
+  }
   if (target.id === "sync-now") {
     manageAction(() => api("/api/sync", {}),
       (r) => t("manage.syncreport",
@@ -969,13 +1284,28 @@ document.addEventListener("change", async (event) => {
   if (event.target.id === "adif-file" && event.target.files.length) {
     const file = event.target.files[0];
     const content = await fileToB64(file);
-    manageAction(() => api("/api/import-adif",
-      { filename: file.name, content_b64: content }),
-      (r) => t("manage.adifreport", {
-        read: r.report.records_read, new: r.report.imported,
-        dup: r.report.duplicates, out: r.report.outside_period,
-        unk: r.report.unknown_station,
-      }));
+    try {
+      const result = await api("/api/import-adif",
+        { filename: file.name, content_b64: content });
+      const rep = result.report;
+      const text = t("manage.adifreport", {
+        read: rep.records_read, new: rep.imported, dup: rep.duplicates,
+        out: rep.outside_period, unk: rep.unknown_station,
+      });
+      if (rep.imported === 0 && rep.records_read > 0) {
+        const hint = rep.outside_period > 0 ? " " + t("manage.adifperiodhint") : "";
+        manageMsg = { kind: "warn", text: text + hint };
+      } else {
+        manageMsg = { kind: "ok", text: text };
+      }
+      showToast(manageMsg.kind, manageMsg.text);
+      await refreshNow();
+      renderManage();
+    } catch (err) {
+      manageMsg = { kind: "warn", text: t("manage.error", { e: err.message }) };
+      showToast("warn", manageMsg.text);
+      renderManage();
+    }
   }
 });
 
@@ -992,3 +1322,6 @@ function applyStaticStrings() {
 
 applyStaticStrings();
 fetchSnapshot();
+
+// Debug/test handle (also useful for field diagnostics in the console).
+window.__fdt = { state, render, clearFilters, showToast };

@@ -5,15 +5,19 @@
    that must remain visible without color (color-blindness, sunlight). */
 
 :root {
-  --ink: #14181c;
-  --ink-soft: #4a545e;
+  /* WLD-huisstijl (overgenomen uit het FreeCAD/dB-leerplatform van ON6WL) */
+  --ink: #1A2332;          /* text-dark */
+  --ink-soft: #6B7A99;     /* slate */
   --paper: #ffffff;
-  --chrome: #1d3557;       /* deep band-chart blue */
-  --chrome-ink: #f4f8fc;
-  --line: #c9d1d9;
-  --line-soft: #e6ebf0;
-  --ok: #2b7a3d;
-  --warn: #b3261e;
+  --paper-soft: #F0F4F8;   /* bg-light */
+  --chrome: #050D1A;       /* navy header */
+  --chrome-ink: #ffffff;
+  --teal: #00B4CC;         /* WLD-accent */
+  --teal-dim: rgba(0,180,204,0.12);
+  --line: #DEE2E6;
+  --line-soft: #e8edf2;
+  --ok: #22C55E;
+  --warn: #FF6B35;         /* WLD-oranje */
   --cell-size: 52px;
   font-size: 17px;         /* tablet baseline: everything scales from here */
 }
@@ -24,12 +28,12 @@ body {
   margin: 0;
   background: var(--paper);
   color: var(--ink);
-  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  font-family: 'Inter', 'Trebuchet MS', system-ui, Arial, sans-serif;
   -webkit-text-size-adjust: 100%;
 }
 
 .mono {
-  font-family: ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace;
+  font-family: 'JetBrains Mono', ui-monospace, Consolas, Menlo, monospace;
   letter-spacing: 0.02em;
 }
 
@@ -43,7 +47,16 @@ body {
   padding: 0.6rem 1rem;
   background: var(--chrome);
   color: var(--chrome-ink);
+  border-bottom: 2px solid rgba(0,180,204,0.35);
 }
+
+.topbar-brand { display: flex; align-items: center; gap: 0.7rem; }
+.logo-wld {
+  font-family: 'Arial Black', Impact, sans-serif;
+  font-size: 1.45rem; font-weight: 900; letter-spacing: -1px;
+  color: var(--chrome-ink); line-height: 1;
+}
+.logo-sep { width: 2px; height: 28px; background: var(--teal); border-radius: 1px; }
 
 .topbar h1 { font-size: 1.25rem; margin: 0; font-weight: 700; }
 .topbar-sub { display: flex; gap: 1rem; font-size: 0.9rem; opacity: 0.92; }
@@ -62,7 +75,7 @@ body {
 
 .livedot {
   width: 0.7rem; height: 0.7rem; border-radius: 50%;
-  background: #58d68d;
+  background: var(--teal);
 }
 .livebar.live .livedot { animation: pulse 2s ease-in-out infinite; }
 .livebar.stale { background: var(--warn); }
@@ -99,13 +112,14 @@ body {
 .tab.active {
   color: var(--ink);
   border-color: var(--line);
+  border-top: 3px solid var(--teal);
   background: var(--paper);
   position: relative;
   top: 2px;
 }
 .tab:focus-visible, button:focus-visible, select:focus-visible,
 input:focus-visible {
-  outline: 3px solid var(--chrome);
+  outline: 3px solid var(--teal);
   outline-offset: 1px;
 }
 
@@ -114,7 +128,7 @@ input:focus-visible {
   flex-wrap: wrap;
   gap: 0.5rem;
   padding: 0.6rem 1rem;
-  background: #f4f6f8;
+  background: var(--paper-soft);
   border-bottom: 1px solid var(--line-soft);
 }
 
@@ -178,7 +192,7 @@ table.matrix { border-collapse: separate; border-spacing: 0; width: 100%; }
   display: block; height: 5px; margin-top: 4px;
   background: rgba(255,255,255,0.25); border-radius: 3px; overflow: hidden;
 }
-.band-head .progress > span { display: block; height: 100%; background: #58d68d; }
+.band-head .progress > span { display: block; height: 100%; background: var(--teal); }
 
 .cellbtn {
   display: flex; align-items: center; justify-content: center;
@@ -200,7 +214,7 @@ table.matrix { border-collapse: separate; border-spacing: 0; width: 100%; }
 table.list { border-collapse: collapse; width: 100%; }
 .list th, .list td { padding: 0.5rem 0.7rem; border-bottom: 1px solid var(--line-soft); text-align: left; }
 .list thead th {
-  background: #f4f6f8; position: sticky; top: 0;
+  background: var(--paper-soft); position: sticky; top: 0;
   cursor: pointer; user-select: none;
 }
 .list thead th .arrow { font-size: 0.75rem; }
@@ -222,7 +236,7 @@ table.list { border-collapse: collapse; width: 100%; }
 }
 .card h3 { margin: 0 0 0.4rem; font-size: 1.05rem; }
 .card .big { font-size: 1.6rem; font-weight: 700; }
-.card.stale-card { border-color: var(--warn); background: #fdf1f0; }
+.card.stale-card { border-color: var(--warn); background: rgba(255,107,53,0.10); }
 .fresh-tag { font-weight: 700; color: var(--ok); }
 .stale-tag { font-weight: 700; color: var(--warn); }
 
@@ -232,19 +246,19 @@ table.list { border-collapse: collapse; width: 100%; }
   padding: 0.4rem 1rem; border-radius: 8px;
   border: 2px solid var(--line); background: var(--paper); cursor: pointer;
 }
-.bandpick button.active { border-color: var(--chrome); background: var(--chrome); color: var(--chrome-ink); }
+.bandpick button.active { border-color: var(--teal); background: var(--chrome); color: var(--chrome-ink); }
 
 .statgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 0.8rem; margin-bottom: 1.2rem; }
 
 .sparkline { width: 100%; max-width: 46rem; height: 120px; }
-.sparkline polyline { fill: none; stroke: var(--chrome); stroke-width: 3; }
+.sparkline polyline { fill: none; stroke: var(--teal); stroke-width: 3; }
 .sparkline .axis { stroke: var(--line); stroke-width: 1; }
 
 /* ---------- detail drawer ---------- */
 
 .detail {
   position: fixed; right: 0; bottom: 0; left: 0; z-index: 10;
-  background: var(--paper); border-top: 3px solid var(--chrome);
+  background: var(--paper); border-top: 3px solid var(--teal);
   box-shadow: 0 -6px 24px rgba(0,0,0,0.18);
   padding: 0.8rem 1.2rem 1.2rem;
   max-height: 45vh; overflow: auto;
@@ -262,7 +276,7 @@ table.list { border-collapse: collapse; width: 100%; }
   position: fixed; left: 0; bottom: 0; right: 0; z-index: 5;
   display: flex; flex-wrap: wrap; gap: 0.9rem;
   padding: 0.45rem 1rem;
-  background: #f4f6f8; border-top: 1px solid var(--line);
+  background: var(--paper-soft); border-top: 1px solid var(--line);
   font-size: 0.85rem;
 }
 .legend .key { display: inline-flex; align-items: center; gap: 0.35rem; }
@@ -293,7 +307,7 @@ table.list { border-collapse: collapse; width: 100%; }
 .drawer {
   position: fixed; top: 0; right: 0; bottom: 0; z-index: 20;
   width: min(30rem, 100%);
-  background: var(--paper); border-left: 3px solid var(--chrome);
+  background: var(--paper); border-left: 3px solid var(--teal);
   box-shadow: -6px 0 24px rgba(0,0,0,0.2);
   padding: 1rem 1.2rem 2rem; overflow: auto;
 }
@@ -313,7 +327,8 @@ table.list { border-collapse: collapse; width: 100%; }
   padding: 0.45rem 1rem; border-radius: 8px; cursor: pointer;
   border: 2px solid var(--chrome); background: var(--chrome); color: var(--chrome-ink);
 }
-.btn.secondary { background: var(--paper); color: var(--chrome); }
+.btn:hover { border-color: var(--teal); }
+.btn.secondary { background: var(--paper); color: var(--chrome); border-color: var(--teal); }
 .btn.danger { border-color: var(--warn); background: var(--warn); color: #fff; }
 .btn:disabled { opacity: 0.5; cursor: default; }
 
@@ -325,11 +340,30 @@ table.list { border-collapse: collapse; width: 100%; }
 .fd-list .active-tag { font-weight: 700; color: var(--ok); }
 
 .msg { margin: 0.6rem 0; padding: 0.55rem 0.8rem; border-radius: 6px; font-weight: 600; }
-.msg.ok { background: #e8f5e9; border: 1.5px solid var(--ok); }
-.msg.warn { background: #fdf1f0; border: 1.5px solid var(--warn); }
+.msg.ok { background: rgba(34,197,94,0.12); border: 1.5px solid var(--ok); }
+.msg.warn { background: rgba(255,107,53,0.12); border: 1.5px solid var(--warn); }
 
 .ov-btns { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.7rem; }
 .detail input.reason {
   font: inherit; padding: 0.4rem 0.6rem; margin-top: 0.5rem;
   border: 1.5px solid var(--line); border-radius: 6px; width: 100%;
 }
+
+
+/* ---------- toast (meldingen zonder scrollen) ---------- */
+.toast {
+  position: fixed; top: 72px; left: 50%; transform: translateX(-50%);
+  z-index: 60; max-width: min(40rem, 92vw);
+  padding: 0.7rem 1.1rem; border-radius: 10px;
+  font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+}
+.toast.ok { background: #eafaf0; border: 2px solid var(--ok); color: #14532d; }
+.toast.warn { background: #fff0e8; border: 2px solid var(--warn); color: #7a2d00; }
+
+
+.closed-badge {
+  margin-left: 0.8rem; padding: 0.2rem 0.7rem; border-radius: 999px;
+  background: var(--warn); color: #fff; font-weight: 800; font-size: 0.8rem;
+  letter-spacing: 0.05em;
+}
+#addst-open { margin-left: auto; }

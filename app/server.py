@@ -54,6 +54,7 @@ class AppState:
         self.listener: N1mmUdpListener | None = None
         self._lock = threading.Lock()
         self._raw_log_path = repo.dir / "raw_packets.log"
+        self._settings_cache = None
 
     # -- listener wiring --------------------------------------------------
 
@@ -69,6 +70,9 @@ class AppState:
     def stop(self) -> None:
         if self.listener is not None:
             self.listener.stop()
+        stop_event = getattr(self, "_auto_publish_stop", None)
+        if stop_event is not None:
+            stop_event.set()
 
     def _append_raw(self, parsed: ParsedPacket, address: tuple[str, int]) -> None:
         """§5.5: retain every raw packet, also ignored/error ones."""
@@ -104,7 +108,19 @@ class AppState:
                 if self.listener is not None
                 else []
             )
-            return build_snapshot(self.engine, sources, readonly=False)
+            snapshot = build_snapshot(self.engine, sources, readonly=False)
+        if self._settings_cache is None:
+            from app.storage.app_settings import load_app_settings
+            self._settings_cache = load_app_settings()
+        snapshot["ui_language"] = self._settings_cache.ui_language
+        fieldday = self.engine.fieldday
+        snapshot["tech"] = {
+            "n1mm_udp_host": fieldday.n1mm_udp_host,
+            "n1mm_udp_port": fieldday.n1mm_udp_port,
+            "freshness_threshold_seconds": fieldday.freshness_threshold_seconds,
+            "strict_callsign_matching": fieldday.strict_callsign_matching,
+        }
+        return snapshot
 
     def status(self) -> dict[str, Any]:
         listener = self.listener
@@ -125,6 +141,7 @@ class AppState:
         }
 
     def set_override(self, payload: dict[str, Any]) -> dict[str, Any]:
+        self._require_open()
         override = Override(
             normalized_callsign=str(payload.get("normalized_callsign", "")),
             band=str(payload.get("band", "")),
@@ -138,6 +155,7 @@ class AppState:
         return {"ok": True, "changed_cells": [list(key) for key in changed]}
 
     def clear_override(self, payload: dict[str, Any]) -> dict[str, Any]:
+        self._require_open()
         with self._lock:
             changed = self.engine.clear_override(
                 str(payload.get("normalized_callsign", "")),
@@ -162,6 +180,215 @@ class AppState:
             station.remarks = remarks
             self.repo.save_stations(self.engine.stations)
         return {"ok": True}
+
+    def _require_open(self) -> None:
+        if self.engine.fieldday.closed:
+            raise ValueError("field day is closed; reopen it first")
+
+    def add_station(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Manually add one station (+ button). Source = manual (§4.2)."""
+        from app.core.callsign import normalize_callsign
+        from app.core.models import Station, StationSource
+
+        self._require_open()
+        call = str(payload.get("callsign", "")).strip()
+        if not call:
+            raise ValueError("callsign is required")
+        strict = self.engine.fieldday.strict_callsign_matching
+        normalized = normalize_callsign(call, strict=strict)
+        if normalized is None:
+            raise ValueError(f"not a plausible callsign: {call}")
+        with self._lock:
+            if normalized in self.engine.station_index:
+                existing = self.engine.station_index[normalized].original_callsign
+                raise ValueError(
+                    f"station already in the list as {existing} "
+                    f"(same station after normalization)")
+            station = Station(
+                original_callsign=call,
+                normalized_callsign=normalized,
+                name=str(payload.get("name", "")),
+                club=str(payload.get("club", "")),
+                category=str(payload.get("category", "")),
+                section=str(payload.get("section", "")),
+                remarks=str(payload.get("remarks", "")),
+                source=StationSource.MANUAL,
+            )
+            stations = self.engine.stations + [station]
+            self.repo.save_stations(stations)
+            self.engine.set_stations(stations)
+        return {"ok": True, "normalized": normalized}
+
+    def close_fieldday(self) -> dict[str, Any]:
+        """Close the field day: viewing stays, all changes are blocked."""
+        with self._lock:
+            fieldday = self.engine.fieldday
+            fieldday.closed = True
+            self.repo.save_fieldday(fieldday)
+        if self.listener is not None:
+            self.listener.stop()
+        return {"ok": True, "closed": True}
+
+    def reopen_fieldday(self) -> dict[str, Any]:
+        with self._lock:
+            fieldday = self.engine.fieldday
+            fieldday.closed = False
+            self.repo.save_fieldday(fieldday)
+        self.start_listener()
+        return {"ok": True, "closed": False}
+
+    # -- exports (§10.4) --------------------------------------------------
+
+    def _export_filename(self, extension: str) -> str:
+        from app.core.models import utc_now
+
+        stamp = utc_now().strftime("%Y%m%d-%H%M%S")
+        return f"{self.repo.slug}-{stamp}.{extension}"
+
+    def _export_dir(self):
+        from pathlib import Path
+
+        if self._settings_cache is None:
+            from app.storage.app_settings import load_app_settings
+            self._settings_cache = load_app_settings()
+        folder = self._settings_cache.export_folder.strip()
+        if folder:
+            path = Path(folder)
+            try:
+                path.mkdir(parents=True, exist_ok=True)
+                return path
+            except OSError:
+                logger.warning("Export folder %s unusable; using default", folder)
+        self.repo.exports_dir.mkdir(parents=True, exist_ok=True)
+        return self.repo.exports_dir
+
+    def export_csv(self) -> tuple[str, bytes]:
+        from app.export.csv_exporter import build_csv
+
+        with self._lock:
+            content = build_csv(self.engine).encode("utf-8")
+        name = self._export_filename("csv")
+        (self._export_dir() / name).write_bytes(content)
+        return name, content
+
+    def export_pdf(self) -> tuple[str, bytes]:
+        from app.export.pdf_exporter import build_pdf
+
+        with self._lock:
+            content = build_pdf(self.engine)
+        name = self._export_filename("pdf")
+        (self._export_dir() / name).write_bytes(content)
+        return name, content
+
+    # -- publishing (phase 16) --------------------------------------------
+
+    def _publish_settings(self):
+        from app.storage.app_settings import load_app_settings
+
+        self._settings_cache = load_app_settings()
+        return self._settings_cache.publish
+
+    def publish_now(self) -> dict[str, Any]:
+        """Publish snapshot + static view to GitHub (§10.3). Never raises."""
+        import json as jsonlib
+        from app.publish.credentials import get_token
+        from app.publish.github_publisher import DEFAULT_API_BASE, GitHubPublisher
+
+        publish = self._publish_settings()
+        if not publish.repo:
+            return {"ok": False, "error": "no repository configured"}
+        token = get_token()
+        if not token:
+            return {"ok": False, "error": "no token configured "
+                    "(store one via the Publish settings, or set "
+                    "N1MM_TRACKER_GH_TOKEN)"}
+        try:
+            with self._lock:
+                sources = (
+                    self.listener.sources_status(
+                        self.engine.fieldday.freshness_threshold_seconds)
+                    if self.listener is not None else []
+                )
+                snapshot = build_snapshot(
+                    self.engine, sources, readonly=True,
+                    include_private=publish.include_private,
+                )
+            files: dict[str, bytes] = {
+                "snapshot.json": jsonlib.dumps(snapshot, indent=1).encode("utf-8"),
+            }
+            static_dir = config.static_view_dir()
+            for name in ("index.html", "app.js", "style.css"):
+                path = static_dir / name
+                if path.exists():
+                    files[name] = path.read_bytes()
+
+            publisher = GitHubPublisher(
+                repo=publish.repo, branch=publish.branch, token=token,
+                api_base=publish.api_base or DEFAULT_API_BASE,
+            )
+            result = publisher.publish_files(
+                files, path_prefix=publish.path,
+                message="field day tracker update",
+            )
+            payload = result.to_dict()
+        except Exception as exc:  # noqa: BLE001 — publiceren mag nooit crashen
+            logger.error("Publish failed: %s", exc)
+            payload = {"ok": False, "uploaded": [], "skipped": [],
+                       "errors": [str(exc)]}
+        payload["at_utc"] = to_iso_z(utc_now())
+        with self._lock:
+            self._last_publish = payload
+        self.repo.append_sync_log("publish", payload)
+        return payload
+
+    def publish_status(self) -> dict[str, Any]:
+        from app.publish.credentials import token_configured
+
+        publish = self._publish_settings()
+        pages_url = ""
+        if "/" in publish.repo:
+            owner, name = publish.repo.split("/", 1)
+            suffix = f"/{publish.path.strip('/')}/" if publish.path.strip("/") else "/"
+            pages_url = f"https://{owner}.github.io/{name}{suffix}"
+        with self._lock:
+            last = getattr(self, "_last_publish", None)
+        return {
+            "ok": True,
+            "settings": publish.to_dict(),
+            "token_configured": token_configured(),
+            "pages_url": pages_url,
+            "last_result": last,
+        }
+
+    def store_publish_token(self, payload: dict[str, Any]) -> dict[str, Any]:
+        from app.publish.credentials import store_token
+
+        stored, message = store_token(str(payload.get("token", "")))
+        return {"ok": stored, "message": message}
+
+    def start_auto_publish(self) -> None:
+        """Background timer: publish every N minutes when enabled (§10.3)."""
+        import threading as threading_mod
+
+        def loop() -> None:
+            import time as time_mod
+
+            last_run = 0.0
+            while not self._auto_publish_stop.is_set():
+                time_mod.sleep(5)
+                try:
+                    publish = self._publish_settings()
+                    interval = publish.auto_interval_minutes
+                    if (publish.enabled and publish.repo and interval > 0
+                            and time_mod.monotonic() - last_run >= interval * 60):
+                        last_run = time_mod.monotonic()
+                        self.publish_now()
+                except Exception:  # noqa: BLE001
+                    logger.exception("Auto-publish iteration failed")
+
+        self._auto_publish_stop = threading_mod.Event()
+        thread = threading_mod.Thread(target=loop, name="auto-publish", daemon=True)
+        thread.start()
 
     # -- field day management (phase 12) ----------------------------------
 
@@ -265,6 +492,7 @@ class AppState:
     def update_fieldday(self, payload: dict[str, Any]) -> dict[str, Any]:
         from app.core.models import parse_iso_z
 
+        udp_changed = False
         with self._lock:
             fieldday = self.engine.fieldday
             if "name" in payload:
@@ -283,10 +511,75 @@ class AppState:
                 fieldday.end_utc = parse_iso_z(payload["end_utc"], "end_utc")
             if "bands" in payload:
                 fieldday.selected_bands = [str(b) for b in payload["bands"]]
+            # Phase 13: per-field-day technical settings.
+            if "n1mm_udp_host" in payload:
+                new_host = str(payload["n1mm_udp_host"]).strip()
+                udp_changed = udp_changed or new_host != fieldday.n1mm_udp_host
+                fieldday.n1mm_udp_host = new_host
+            if "n1mm_udp_port" in payload:
+                new_port = int(payload["n1mm_udp_port"])
+                udp_changed = udp_changed or new_port != fieldday.n1mm_udp_port
+                fieldday.n1mm_udp_port = new_port
+            if "freshness_threshold_seconds" in payload:
+                fieldday.freshness_threshold_seconds = int(
+                    payload["freshness_threshold_seconds"]
+                )
+            if "strict_callsign_matching" in payload:
+                fieldday.strict_callsign_matching = bool(
+                    payload["strict_callsign_matching"]
+                )
+            if "status_colors" in payload and isinstance(payload["status_colors"], dict):
+                fieldday.status_colors.update(
+                    {str(k): str(v) for k, v in payload["status_colors"].items()}
+                )
             fieldday.validate()
             self.repo.save_fieldday(fieldday)
             report = self.engine.set_fieldday(fieldday)
-        return {"ok": True, "report": report.to_dict()}
+        if udp_changed and self.listener is not None:
+            self.listener.stop()
+            self.start_listener()
+        return {"ok": True, "report": report.to_dict(), "udp_restarted": udp_changed}
+
+    # -- app settings (phase 13) ------------------------------------------
+
+    def get_app_settings(self) -> dict[str, Any]:
+        from app.storage.app_settings import load_app_settings
+
+        self._settings_cache = load_app_settings()
+        return {"ok": True, "settings": self._settings_cache.to_dict()}
+
+    def update_app_settings(self, payload: dict[str, Any]) -> dict[str, Any]:
+        from app.storage.app_settings import load_app_settings, save_app_settings
+
+        settings = load_app_settings()
+        if "ui_language" in payload:
+            settings.ui_language = str(payload["ui_language"])
+        if "n1mm_udp_host" in payload:
+            settings.n1mm_udp_host = str(payload["n1mm_udp_host"])
+        if "n1mm_udp_port" in payload:
+            settings.n1mm_udp_port = int(payload["n1mm_udp_port"])
+        if "freshness_threshold_seconds" in payload:
+            settings.freshness_threshold_seconds = int(
+                payload["freshness_threshold_seconds"]
+            )
+        if "strict_callsign_matching" in payload:
+            settings.strict_callsign_matching = bool(payload["strict_callsign_matching"])
+        if "default_selected_bands" in payload:
+            settings.default_selected_bands = [
+                str(b) for b in payload["default_selected_bands"]
+            ]
+        if "export_folder" in payload:
+            settings.export_folder = str(payload["export_folder"])
+        if "publish" in payload and isinstance(payload["publish"], dict):
+            from app.core.models import PublishSettings
+
+            merged = settings.publish.to_dict()
+            merged.update(payload["publish"])
+            settings.publish = PublishSettings.from_dict(merged)
+        settings.validate()
+        save_app_settings(settings)
+        self._settings_cache = settings
+        return {"ok": True, "settings": settings.to_dict()}
 
     # -- uploads (base64 JSON; local app, small files) --------------------
 
@@ -316,6 +609,7 @@ class AppState:
             import_stations_from_csv, import_stations_from_excel,
         )
 
+        self._require_open()
         filename, blob = self._decode_upload(payload)
         confirm = bool(payload.get("confirm_removals", False))
         suffix = ".csv" if filename.lower().endswith(".csv") else ".xlsx"
@@ -377,6 +671,7 @@ class AppState:
     def import_adif(self, payload: dict[str, Any]) -> dict[str, Any]:
         from app.ingest.adif_importer import import_adif_text
 
+        self._require_open()
         filename, blob = self._decode_upload(payload)
         try:
             text = blob.decode("utf-8")
@@ -423,6 +718,15 @@ class TrackerRequestHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _send_file(self, content: bytes, filename: str, content_type: str) -> None:
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+        self.send_header("Content-Length", str(len(content)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(content)
+
     def _read_json_body(self) -> dict[str, Any] | None:
         try:
             length = int(self.headers.get("Content-Length", "0"))
@@ -448,6 +752,20 @@ class TrackerRequestHandler(SimpleHTTPRequestHandler):
             return
         if path == "/api/fielddays":
             self._send_json(state.list_fielddays())
+            return
+        if path == "/api/settings":
+            self._send_json(state.get_app_settings())
+            return
+        if path == "/api/export/csv":
+            name, content = state.export_csv()
+            self._send_file(content, name, "text/csv; charset=utf-8")
+            return
+        if path == "/api/export/pdf":
+            name, content = state.export_pdf()
+            self._send_file(content, name, "application/pdf")
+            return
+        if path == "/api/publish/status":
+            self._send_json(state.publish_status())
             return
         super().do_GET()
 
@@ -482,6 +800,19 @@ class TrackerRequestHandler(SimpleHTTPRequestHandler):
                 self._send_json(state.import_stations(payload))
             elif path == "/api/import-adif":
                 self._send_json(state.import_adif(payload))
+            elif path == "/api/settings":
+                self._send_json(state.update_app_settings(payload))
+            elif path == "/api/station/add":
+                self._send_json(state.add_station(payload))
+            elif path == "/api/fieldday/close":
+                self._send_json(state.close_fieldday())
+            elif path == "/api/fieldday/reopen":
+                self._send_json(state.reopen_fieldday())
+            elif path == "/api/publish/now":
+                self._send_json(state.publish_now())
+            elif path == "/api/publish/token":
+                result = state.store_publish_token(payload)
+                self._send_json(result, 200 if result.get("ok") else 400)
             else:
                 self._send_json({"ok": False, "error": "unknown endpoint"}, 404)
         except (ValueError, TypeError) as exc:

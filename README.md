@@ -77,6 +77,29 @@ tests/
 docs/
 ```
 
+## Scope note: multiple tracker laptops
+
+One tracker instance per field day is the supported setup. Multiple N1MM
+PCs are fully supported (they all broadcast UDP to the one tracker — N1MM
+even accepts multiple space-separated destinations). What is **explicitly
+out of scope in this version** is running several tracker laptops that
+merge their data through GitHub ("node sync"). The design for it exists
+(nodes/ directory per laptop in the shared repo, deterministic merge on
+QSO id, newest-wins overrides with tombstones) and is on the roadmap below.
+
+## Roadmap
+
+- **v1 (current)**: single tracker next to N1MM, multi-PC UDP ingest, ADIF
+  safety net, six live views in WLD house style, manual overrides, CSV/PDF
+  export, publishing a read-only page to GitHub Pages (incl. step-by-step
+  instructions for other clubs: create your own repo + Pages + fine-grained
+  token).
+- **v2 (planned)**: multi-laptop node sync via the shared GitHub repo —
+  every tracker pushes its own QSOs/overrides, pulls the other nodes,
+  merges locally (two-way visibility) and publishes the combined snapshot.
+- Ideas beyond that: score estimation, alerting when a wanted station
+  appears in the N1MM bandmap.
+
 ## Status
 
-Phase 1 (project setup) — the application is not functional yet.
+In active development; see `docs/DRAAIBOEK.md` (NL) to get running.
