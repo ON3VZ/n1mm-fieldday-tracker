@@ -214,3 +214,138 @@ class TestPublishFlow:
         assert result2["ok"] is True
         for name in ("index.html", "app.js", "style.css"):
             assert name in result2["skipped"]
+
+
+class TestOfflineBehavior:
+    def test_connection_error_raises_offline_not_retry_storm(self, monkeypatch):
+        """No network → OfflineError immediately, no retry hammering."""
+        import app.publish.github_publisher as gp
+
+        calls = {"n": 0}
+
+        def boom(*args, **kwargs):
+            calls["n"] += 1
+            raise gp.requests.ConnectionError("no route to host")
+
+        monkeypatch.setattr(gp.requests, "request", boom)
+        publisher = gp.GitHubPublisher(repo="club/live", branch="main", token="x")
+        # OfflineError propagates (caller decides), and crucially only ONE
+        # network call was made — no tight retry storm.
+        with pytest.raises(gp.OfflineError):
+            publisher.publish_files({"snapshot.json": b"x"})
+        assert calls["n"] == 1
+
+    def test_appstate_publish_now_reports_offline(self, monkeypatch, tmp_path):
+        from datetime import datetime, timedelta, timezone
+
+        from app.core.models import FieldDay
+        from app.server import AppState
+        from app.storage.app_settings import load_app_settings, save_app_settings
+        from app.storage.fieldday_repository import create_fieldday
+        import app.publish.github_publisher as gp
+
+        monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg"))
+        monkeypatch.setenv(credentials.ENV_VAR, "tok")
+        import importlib
+        import app.config as config
+        importlib.reload(config)
+
+        settings = load_app_settings()
+        settings.publish.repo = "club/live"
+        save_app_settings(settings)
+
+        def boom(*args, **kwargs):
+            raise gp.requests.ConnectionError("offline")
+
+        monkeypatch.setattr(gp.requests, "request", boom)
+
+        start = datetime.now(timezone.utc)
+        fieldday = FieldDay(id="fd-off", name="Off", start_utc=start,
+                            end_utc=start + timedelta(hours=24))
+        repo = create_fieldday(fieldday, root_dir=tmp_path / "fds")
+        state = AppState(repo)
+        result = state.publish_now()
+        assert result["ok"] is False
+        assert result.get("offline") is True
+
+
+class TestPublicationState:
+    def _state_app(self, tmp_path, monkeypatch, start, end, closed=False):
+        from app.core.models import FieldDay
+        from app.server import AppState
+        from app.storage.app_settings import load_app_settings, save_app_settings
+        from app.storage.fieldday_repository import create_fieldday
+        import importlib
+        import app.config as config
+
+        monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg"))
+        monkeypatch.setenv(credentials.ENV_VAR, "tok")
+        importlib.reload(config)
+        settings = load_app_settings()
+        settings.publish.repo = "club/live"
+        save_app_settings(settings)
+        fieldday = FieldDay(id="fd-state", name="StateVD",
+                            start_utc=start, end_utc=end, closed=closed)
+        repo = create_fieldday(fieldday, root_dir=tmp_path / "fds")
+        return AppState(repo)
+
+    def test_live_state_within_window(self, tmp_path, monkeypatch):
+        from datetime import datetime, timedelta, timezone
+        now = datetime.now(timezone.utc)
+        app = self._state_app(tmp_path, monkeypatch,
+                              now - timedelta(hours=1), now + timedelta(hours=5))
+        assert app._publication_state()["state"] == "live"
+
+    def test_upcoming_before_start(self, tmp_path, monkeypatch):
+        from datetime import datetime, timedelta, timezone
+        now = datetime.now(timezone.utc)
+        app = self._state_app(tmp_path, monkeypatch,
+                              now + timedelta(days=3), now + timedelta(days=3, hours=6))
+        state = app._publication_state()
+        assert state["state"] == "upcoming"
+        assert "next_start_utc" in state
+
+    def test_expired_after_one_week(self, tmp_path, monkeypatch):
+        from datetime import datetime, timedelta, timezone
+        now = datetime.now(timezone.utc)
+        app = self._state_app(tmp_path, monkeypatch,
+                              now - timedelta(days=10), now - timedelta(days=9))
+        assert app._publication_state()["state"] == "expired"
+
+    def test_grace_period_still_live(self, tmp_path, monkeypatch):
+        from datetime import datetime, timedelta, timezone
+        now = datetime.now(timezone.utc)
+        # ended 2 days ago → within 1-week grace → still live
+        app = self._state_app(tmp_path, monkeypatch,
+                              now - timedelta(days=3), now - timedelta(days=2))
+        assert app._publication_state()["state"] == "live"
+
+    def test_none_when_closed(self, tmp_path, monkeypatch):
+        from datetime import datetime, timedelta, timezone
+        now = datetime.now(timezone.utc)
+        app = self._state_app(tmp_path, monkeypatch,
+                              now - timedelta(hours=1), now + timedelta(hours=5),
+                              closed=True)
+        assert app._publication_state()["state"] == "none"
+
+    def test_published_snapshot_expired_has_no_stations(self, fake_github, tmp_path, monkeypatch):
+        from datetime import datetime, timedelta, timezone
+        from app.core.models import Station, StationSource
+        from app.storage.app_settings import load_app_settings, save_app_settings
+
+        now = datetime.now(timezone.utc)
+        app = self._state_app(tmp_path, monkeypatch,
+                              now - timedelta(days=10), now - timedelta(days=9))
+        app.repo.save_stations([Station(original_callsign="ON4BAF/P",
+                                        normalized_callsign="ON4BAF",
+                                        source=StationSource.EXCEL)])
+        app.engine.set_stations(app.repo.load_stations())
+        settings = load_app_settings()
+        settings.publish.api_base = fake_github
+        save_app_settings(settings)
+
+        result = app.publish_now()
+        assert result["ok"] is True
+        published = json.loads(FakeGitHub.store["snapshot.json"].decode())
+        assert published["publication"]["state"] == "expired"
+        assert published["stations"] == []  # no data leaked on an expired page

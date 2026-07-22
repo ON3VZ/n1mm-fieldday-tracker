@@ -17,9 +17,9 @@
 const STRINGS = {
   en: {
     "live.loading": "Loading…",
-    "live.updated": "Live — updated {s}s ago",
+    "live.updated": "Live — updated {s} ago",
     "live.stale": "No data — last update {s}s ago",
-    "live.readonly": "Public view — updated {s}s ago",
+    "live.readonly": "Public view — updated {s} ago",
     "view.matrix": "Matrix",
     "view.towork": "Still to work",
     "view.band": "Per band",
@@ -79,9 +79,28 @@ const STRINGS = {
     "status.excluded": "Excluded",
     "matrix.none": "No stations match the current filters.",
     "manage.open": "Manage",
+    "manual.open": "Manual",
+    "manual.title": "Quick manual",
+    "manual.close": "Close",
+    "pub.none.title": "No active field day",
+    "pub.none.body": "There is currently no field day being tracked.",
+    "pub.none.next": "Next planned: {name} on {date}.",
+    "pub.upcoming.title": "Field day starts soon",
+    "pub.upcoming.body": "{name} starts on {date}.",
+    "pub.upcoming.countdown": "Starts in {d}d {h}h {m}m.",
+    "pub.expired.title": "This field day has ended",
+    "pub.expired.body": "The results are no longer shown here.",
     "manage.title": "Field day management",
     "manage.fielddays": "Field days",
     "manage.activate": "Open",
+    "fd.export": "Export this field day to a file",
+    "fd.delete": "Delete this field day",
+    "fd.import": "Import field day from file…",
+    "fd.imported": "Field day imported: {name} ({q} QSOs, {s} stations).",
+    "fd.deleted": "Field day deleted.",
+    "fd.deleteprompt": "Delete \"{name}\" and ALL its logs permanently? This cannot be undone.\n\nType DELETE to confirm:",
+    "fd.deletemismatch": "Not deleted — you did not type DELETE.",
+    "help.bundle": "Export writes the ENTIRE field day (settings, stations, all QSOs, manual statuses) to one .fdtracker file. Copy it to another PC and use Import there to continue working. Import always creates a NEW field day, so it never overwrites existing data.",
     "manage.newfd": "New field day",
     "manage.name": "Name",
     "manage.start": "Start (local time)",
@@ -116,6 +135,11 @@ const STRINGS = {
     "ov.exclude": "Exclude",
     "ov.clear": "Clear manual status",
     "ov.reason": "Reason (optional)",
+    "rmst.title": "Remove station",
+    "rmst.hint": "Removes this station from the participant list. Received QSOs are kept on disk; re-importing the list or re-adding the callsign brings it back.",
+    "rmst.button": "Remove this station",
+    "rmst.confirm": "Remove station {name} from the list?",
+    "rmst.removed": "Station removed.",
     "set.title": "Settings",
     "set.language": "Language (translations follow in a later update)",
     "set.udphost": "UDP listen address (127.0.0.1 = this laptop only, 0.0.0.0 = also other PCs)",
@@ -128,6 +152,14 @@ const STRINGS = {
     "set.saveapp": "Save app settings",
     "set.udprestarted": "Saved — UDP listener restarted on the new address.",
     "filter.clear": "Clear all filters",
+    "help.udphost": "In N1MM: Config > Configure Ports... > tab 'Broadcast Data'. Tick 'Contacts' and set the destination to this laptop's address + port. Use 127.0.0.1 when N1MM runs on THIS laptop; use this laptop's network IP (and set the address here to 0.0.0.0) when N1MM runs on another PC.",
+    "help.udpport": "The UDP port N1MM broadcasts to. Default 12060. It must be exactly the same number here and in N1MM's Broadcast Data settings.",
+    "help.strict": "OFF (recommended): ON4BAF/P and ON4BAF count as the same station. ON: only the exact callsign as written counts, so /P, /M or a prefix make a different station. Changing this recalculates the whole matrix.",
+    "help.fresh": "How many seconds a source PC may be silent before it is shown as STALE (possible cable/network problem). Default 120.",
+    "help.excel": "The participant list is recognised by COLUMN HEADERS (first row), not by order — so columns may be in any order. Recognised headers: Callsign (Call / Callsign / Roepnaam) — required; Name (Naam); Club; Category (Categorie); Section (Sectie); Remarks (Opmerking). Band columns (e.g. 40m, 80m) are picked up automatically. Extra columns are ignored. Only a callsign column is mandatory.",
+    "help.adifbtn": "Pulls the FULL log out of N1MM. In N1MM: File > Export > Export to ADIF, then import that .adi file here. Already-known QSOs are skipped automatically, so you can do this as often as you like — also to catch up after the tracker was switched off.",
+    "help.repo": "The GitHub repository as owner/name, e.g. ON3VZ/velddag-live. Do NOT paste the full https://github.com/... link.",
+    "help.token": "A fine-grained personal access token with 'Contents: Read and write' on only the publish repository. It is stored in the OS keyring, never in a file.",
     "manage.adifperiodhint": "Tip: these QSOs fall outside the field day period — check the start/end of the field day (Manage → Edit).",
     "addst.button": "+ Station",
     "addst.title": "Add station manually",
@@ -163,6 +195,7 @@ const STRINGS = {
     "pub.tokenok": "Token stored securely.",
     "pub.result": "Published: {up} uploaded, {skip} unchanged.",
     "pub.resulterr": "Publish failed: {e}",
+    "pub.offline": "No internet connection — publishing paused. It will resume automatically when you are back online.",
     "pub.pagesurl": "Public page:",
     "pub.tokenset": "token configured",
     "pub.notoken": "no token yet",
@@ -224,11 +257,31 @@ async function fetchSnapshot() {
   }
 }
 
-function renderLivebar() {
-  const bar = $("livebar");
-  const seconds = state.lastFetchOk
+function snapshotAgeSeconds() {
+  // Op de publieke pagina telt het moment waarop de TRACKER de snapshot
+  // maakte/pushte, niet wanneer de browser hem ophaalde.
+  const snap = state.snapshot;
+  if (snap && snap.readonly && snap.generated_at_utc) {
+    const made = Date.parse(snap.generated_at_utc);
+    if (!isNaN(made)) return Math.max(0, Math.round((Date.now() - made) / 1000));
+  }
+  return state.lastFetchOk
     ? Math.round((Date.now() - state.lastFetchOk.getTime()) / 1000)
     : null;
+}
+
+function humanAge(seconds) {
+  if (seconds == null) return "";
+  if (seconds < 90) return seconds + "s";
+  const min = Math.round(seconds / 60);
+  if (min < 90) return min + " min";
+  const hours = Math.round(min / 60);
+  return hours + " h";
+}
+
+function renderLivebar() {
+  const bar = $("livebar");
+  const seconds = snapshotAgeSeconds();
   if (state.fetchFailed || seconds === null) {
     bar.className = "livebar stale";
     $("live-text").textContent =
@@ -237,7 +290,7 @@ function renderLivebar() {
   }
   bar.className = "livebar live";
   const key = state.snapshot && state.snapshot.readonly ? "live.readonly" : "live.updated";
-  $("live-text").textContent = t(key, { s: seconds });
+  $("live-text").textContent = t(key, { s: humanAge(seconds) });
 }
 setInterval(renderLivebar, 1000);
 
@@ -329,6 +382,17 @@ function render() {
     lang = STRINGS[snap.ui_language] ? snap.ui_language : "en";
     applyStaticStrings();
   }
+
+  // Block C: on the public page a non-live publication state shows a simple
+  // notice instead of the matrix (no station data is present in that case).
+  const pub = snap.publication;
+  if (pub && pub.state && pub.state !== "live") {
+    renderPublicationNotice(pub);
+    return;
+  }
+  const notice = $("pub-notice");
+  if (notice) notice.remove();
+
   document.title = snap.field_day.name + " — Field Day Tracker";
   $("fd-name").textContent = snap.field_day.name;
   $("fd-callsign").textContent = snap.field_day.event_callsign;
@@ -336,6 +400,10 @@ function render() {
     fmtUtc(snap.field_day.start_utc) + " → " + fmtUtc(snap.field_day.end_utc) + " UTC";
 
   renderLivebar();
+  const manageBtn = $("manage-open");
+  if (manageBtn) manageBtn.style.display = snap.readonly ? "none" : "";
+  const manualBtn = $("manual-open");
+  if (manualBtn) manualBtn.style.display = snap.readonly ? "none" : "";
   ensureAddButton();
   renderClosedBadge();
   renderFilterOptions();
@@ -806,6 +874,10 @@ function showCellDetail(normalized, band) {
       '<button class="btn secondary" data-ovclear data-call="' + esc(normalized) +
       '" data-band="' + esc(band) + '">' + esc(t("ov.clear")) + "</button>" +
       "</div>";
+    html += '<h4>' + esc(t("rmst.title")) + "</h4>" +
+      '<p class="rm-hint">' + esc(t("rmst.hint")) + "</p>" +
+      '<button class="btn danger" data-rmstation="' + esc(normalized) +
+      '" data-name="' + esc(station.callsign) + '">' + esc(t("rmst.button")) + "</button>";
   }
   $("detail-body").innerHTML = html;
   $("detail").hidden = false;
@@ -885,6 +957,143 @@ $("f-search").addEventListener("input", (event) => {
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") $("detail").hidden = true;
 });
+
+/* ------------------------------------------------------------- manual */
+
+const MANUAL_HTML =
+  "<h3>Connecting N1MM</h3>" +
+  "<p>In N1MM: <b>Config &gt; Configure Ports, Mode Control, Audio, Other</b> " +
+  "&gt; tab <b>Broadcast Data</b>. Tick <b>Contacts</b> (not Lookup) and set the " +
+  "destination to <code>127.0.0.1:12060</code> when N1MM runs on this same laptop. " +
+  "Contest type FDREG1. Log a test QSO and the cell should turn green within 5s.</p>" +
+  "<h3>Windows Firewall</h3>" +
+  "<p>The first time you start the tracker, Windows may ask to allow network " +
+  "access. Click <b>Allow access</b> — this is needed to receive N1MM's data. " +
+  "If you clicked it away, allow <code>python.exe</code> in " +
+  "<b>Windows Security &gt; Firewall &amp; network protection &gt; Allow an app</b>.</p>" +
+  "<h3>Catching up after the tracker was off</h3>" +
+  "<p>UDP only carries live traffic, so QSOs logged while the tracker was closed " +
+  "are not received automatically. To pull in the full log: in N1MM " +
+  "<b>File &gt; Export &gt; Export to ADIF</b>, then in the tracker " +
+  "<b>Manage &gt; ADIF import</b>. Known QSOs are skipped, so nothing doubles.</p>" +
+  "<h3>Multiple field days</h3>" +
+  "<p>There is always exactly one <b>active</b> field day. N1MM data is always " +
+  "recorded into that active field day. A closed field day ignores incoming QSOs.</p>" +
+  "<h3>Publishing</h3>" +
+  "<p>Only the active field day is published. The public page is read-only and " +
+  "refreshes itself. Full step-by-step setup is in the handbook, chapter 13b.</p>" +
+  "<p><em>The full handbook (HANDLEIDING.md) sits in the docs folder of the " +
+  "application.</em></p>";
+
+function openManual() {
+  $("manual-drawer").hidden = false;
+  $("drawer-backdrop").hidden = false;
+  $("manual-body").innerHTML = MANUAL_HTML;
+}
+function closeManual() {
+  $("manual-drawer").hidden = true;
+  if ($("manage-drawer").hidden) $("drawer-backdrop").hidden = true;
+}
+
+/* ---------------------------------------------------------- accordion */
+
+function accordionize(html) {
+  // Split the flat panel HTML on <h3> headers and wrap each section in a
+  // collapsible <details>, so the panel reads as tidy groups instead of one
+  // long scroll. A leading block before the first <h3> (e.g. a message) is
+  // kept as-is on top.
+  const parts = html.split(/(<h3>)/);
+  let out = parts[0]; // anything before the first header (msg banner)
+  let first = true;
+  for (let i = 1; i < parts.length; i += 2) {
+    const body = parts[i + 1] || "";
+    const closeIdx = body.indexOf("</h3>");
+    const title = body.slice(0, closeIdx);
+    const rest = body.slice(closeIdx + 5);
+    out += '<details class="acc"' + (first ? " open" : "") + ">" +
+      "<summary>" + title + "</summary>" +
+      '<div class="acc-body">' + rest + "</div></details>";
+    first = false;
+  }
+  return out;
+}
+
+/* --------------------------------------------------------------- help */
+
+function help(key) {
+  // A small blue (?) that shows an instant-help tooltip on click.
+  return '<button type="button" class="help-dot" data-help="' + esc(key) +
+    '" aria-label="Help">?</button>';
+}
+
+function showHelp(key, anchor) {
+  hideHelp();
+  const box = document.createElement("div");
+  box.id = "help-pop";
+  box.className = "help-pop";
+  box.textContent = t(key);
+  document.body.appendChild(box);
+  const rect = anchor.getBoundingClientRect();
+  const top = window.scrollY + rect.bottom + 6;
+  let left = window.scrollX + rect.left - 4;
+  left = Math.min(left, window.scrollX + window.innerWidth - box.offsetWidth - 12);
+  box.style.top = top + "px";
+  box.style.left = Math.max(8, left) + "px";
+}
+function hideHelp() {
+  const existing = $("help-pop");
+  if (existing) existing.remove();
+}
+document.addEventListener("click", (event) => {
+  const dot = event.target.closest("[data-help]");
+  if (dot) { showHelp(dot.dataset.help, dot); event.stopPropagation(); return; }
+  if (!event.target.closest("#help-pop")) hideHelp();
+});
+
+/* -------------------------------------------------- publication notice */
+
+function renderPublicationNotice(pub) {
+  document.title = "Field Day Tracker";
+  // Hide the interactive chrome on these pages.
+  for (const id of ["manage-open", "manual-open"]) {
+    const el = $(id); if (el) el.style.display = "none";
+  }
+  const filters = $("filters"); if (filters) filters.style.display = "none";
+  const tabs = $("tabs"); if (tabs) tabs.style.display = "none";
+  $("fd-name").textContent = "Field Day Tracker";
+  $("fd-callsign").textContent = "";
+  $("fd-period").textContent = "";
+  const livebar = $("livebar"); if (livebar) livebar.style.display = "none";
+
+  let title = "", body = "";
+  if (pub.state === "none") {
+    title = t("pub.none.title");
+    body = t("pub.none.body");
+    if (pub.next_start_utc) {
+      body += " " + t("pub.none.next",
+        { name: pub.next_name, date: fmtUtc(pub.next_start_utc) });
+    }
+  } else if (pub.state === "upcoming") {
+    title = t("pub.upcoming.title");
+    body = t("pub.upcoming.body", { name: pub.next_name, date: fmtUtc(pub.next_start_utc) });
+    const ms = Date.parse(pub.next_start_utc) - Date.now();
+    if (ms > 0) {
+      const totalMin = Math.floor(ms / 60000);
+      const d = Math.floor(totalMin / 1440);
+      const h = Math.floor((totalMin % 1440) / 60);
+      const m = totalMin % 60;
+      body += " " + t("pub.upcoming.countdown", { d, h, m });
+    }
+  } else if (pub.state === "expired") {
+    title = t("pub.expired.title");
+    body = t("pub.expired.body");
+  }
+
+  const root = $("view-root");
+  root.innerHTML = '<div class="pub-notice" id="pub-notice">' +
+    '<div class="pub-logo">WLD</div>' +
+    "<h2>" + esc(title) + "</h2><p>" + esc(body) + "</p></div>";
+}
 
 /* ------------------------------------------------------- manage drawer */
 
@@ -978,12 +1187,24 @@ async function renderManage() {
   html += "<h3>" + esc(t("manage.fielddays")) + '</h3><ul class="fd-list">';
   for (const entry of fielddays) {
     html += '<li><span class="mono">' + esc(entry.name) + "</span>" +
+      '<span class="fd-actions">' +
       (entry.active
         ? '<span class="active-tag">●</span>'
         : '<button class="btn secondary" data-activate="' + esc(entry.id) + '">' +
-          esc(t("manage.activate")) + "</button>") + "</li>";
+          esc(t("manage.activate")) + "</button>") +
+      '<button class="btn secondary" data-export="' + esc(entry.id) +
+      '" title="' + esc(t("fd.export")) + '">⭳</button>' +
+      (entry.active
+        ? ""
+        : '<button class="btn danger" data-delete="' + esc(entry.id) +
+          '" data-name="' + esc(entry.name) + '" title="' + esc(t("fd.delete")) +
+          '">🗑</button>') +
+      "</span></li>";
   }
-  html += "</ul>";
+  html += "</ul>" +
+    '<input type="file" id="fd-import-file" accept=".fdtracker,.json" hidden>' +
+    '<div class="row-btns"><button class="btn secondary" id="fd-import-pick">' +
+    esc(t("fd.import")) + "</button> " + help("help.bundle") + "</div>";
 
   html += "<h3>" + esc(t("manage.newfd")) + "</h3>" +
     '<label>' + esc(t("manage.name")) + '</label><input type="text" id="nf-name">' +
@@ -1026,13 +1247,13 @@ async function renderManage() {
   } else {
     html += '<input type="file" id="imp-file" accept=".xlsx,.csv" hidden>' +
       '<div class="row-btns"><button class="btn secondary" id="imp-pick">' +
-      esc(t("manage.importbtn")) + "</button></div>";
+      esc(t("manage.importbtn")) + "</button> " + help("help.excel") + "</div>";
   }
 
   html += "<h3>" + esc(t("manage.adif")) + "</h3>" +
     '<input type="file" id="adif-file" accept=".adi,.adif" hidden>' +
     '<div class="row-btns"><button class="btn secondary" id="adif-pick">' +
-    esc(t("manage.adifbtn")) + "</button></div>";
+    esc(t("manage.adifbtn")) + "</button> " + help("help.adifbtn") + "</div>";
 
   const fdFull = snap ? snap.field_day : null;
   if (fdFull) {
@@ -1044,14 +1265,14 @@ async function renderManage() {
         code.toUpperCase() + "</option>";
     }
     html += "</select>" +
-      '<label>' + esc(t("set.udphost")) + '</label>' +
+      '<label>' + esc(t("set.udphost")) + " " + help("help.udphost") + '</label>' +
       '<input type="text" id="set-udphost" class="mono" value="' + esc(manageSettings.udpHost) + '">' +
-      '<label>' + esc(t("set.udpport")) + '</label>' +
+      '<label>' + esc(t("set.udpport")) + " " + help("help.udpport") + '</label>' +
       '<input type="text" id="set-udpport" class="mono" value="' + esc(manageSettings.udpPort) + '">' +
-      '<label>' + esc(t("set.fresh")) + '</label>' +
+      '<label>' + esc(t("set.fresh")) + " " + help("help.fresh") + '</label>' +
       '<input type="text" id="set-fresh" class="mono" value="' + esc(manageSettings.fresh) + '">' +
       '<label><input type="checkbox" id="set-strict"' +
-      (manageSettings.strict ? " checked" : "") + "> " + esc(t("set.strict")) + "</label>" +
+      (manageSettings.strict ? " checked" : "") + "> " + esc(t("set.strict")) + " " + help("help.strict") + "</label>" +
       '<label>' + esc(t("set.colors")) + '</label><div class="bandboxes">';
     for (const status of Object.keys(snap.legend)) {
       html += '<label><input type="color" class="set-color" data-status="' + esc(status) +
@@ -1091,7 +1312,7 @@ async function renderManage() {
     '<div class="msg warn">' + esc(t("pub.warning")) + "</div>" +
     '<label><input type="checkbox" id="pub-enabled"' +
     (managePublish.enabled ? " checked" : "") + "> " + esc(t("pub.enabled")) + "</label>" +
-    '<label>' + esc(t("pub.repo")) + '</label>' +
+    '<label>' + esc(t("pub.repo")) + " " + help("help.repo") + '</label>' +
     '<input type="text" id="pub-repo" class="mono" value="' + esc(managePublish.repo) + '">' +
     '<label>' + esc(t("pub.branch")) + '</label>' +
     '<input type="text" id="pub-branch" class="mono" value="' + esc(managePublish.branch) + '">' +
@@ -1101,7 +1322,7 @@ async function renderManage() {
     '<input type="text" id="pub-interval" class="mono" value="' + esc(managePublish.interval) + '">' +
     '<label><input type="checkbox" id="pub-private"' +
     (managePublish.includePrivate ? " checked" : "") + "> " + esc(t("pub.private")) + "</label>" +
-    '<label>' + esc(t("pub.token")) + " <em>(" +
+    '<label>' + esc(t("pub.token")) + " " + help("help.token") + " <em>(" +
     esc(managePublish.tokenConfigured ? t("pub.tokenset") : t("pub.notoken")) + ")</em></label>" +
     '<input type="password" id="pub-token" autocomplete="off">' +
     '<div class="row-btns">' +
@@ -1118,7 +1339,7 @@ async function renderManage() {
     '<div class="row-btns"><button class="btn secondary" id="sync-now">' +
     esc(t("manage.syncbtn")) + "</button></div>";
 
-  body.innerHTML = html;
+  body.innerHTML = accordionize(html);
 }
 
 async function manageAction(fn, okText) {
@@ -1126,7 +1347,11 @@ async function manageAction(fn, okText) {
     const result = await fn();
     manageMsg = { kind: "ok", text: okText(result) };
   } catch (err) {
-    manageMsg = { kind: "warn", text: t("manage.error", { e: err.message }) };
+    if (err && err.offline) {
+      manageMsg = { kind: "warn", text: t("pub.offline") };
+    } else {
+      manageMsg = { kind: "warn", text: t("manage.error", { e: err.message }) };
+    }
   }
   showToast(manageMsg.kind, manageMsg.text);
   await refreshNow();
@@ -1136,11 +1361,53 @@ async function manageAction(fn, okText) {
 document.addEventListener("click", async (event) => {
   const target = event.target;
   if (target.id === "manage-open") { openManage(); return; }
-  if (target.id === "manage-close" || target.id === "drawer-backdrop") { closeManage(); return; }
+  if (target.id === "manual-open") { openManual(); return; }
+  if (target.id === "manual-close") { closeManual(); return; }
+  if (target.id === "manage-close") { closeManage(); return; }
+  if (target.id === "drawer-backdrop") { closeManage(); closeManual(); return; }
 
   const ovTarget = target.closest("[data-ovset],[data-ovclear]");
   if (ovTarget) { handleOverrideClick(ovTarget); return; }
 
+  const rmStation = target.closest("[data-rmstation]");
+  if (rmStation) {
+    const name = rmStation.dataset.name || rmStation.dataset.rmstation;
+    if (window.confirm(t("rmst.confirm", { name: name }))) {
+      (async () => {
+        try {
+          await api("/api/station/remove",
+            { normalized_callsign: rmStation.dataset.rmstation });
+          $("detail").hidden = true;
+          showToast("ok", t("rmst.removed"));
+          await refreshNow();
+        } catch (err) {
+          showToast("warn", t("manage.error", { e: err.message }));
+        }
+      })();
+    }
+    return;
+  }
+
+  const exportBtn = target.closest("[data-export]");
+  if (exportBtn) {
+    window.open("/api/fieldday/export?id=" + encodeURIComponent(exportBtn.dataset.export), "_blank");
+    return;
+  }
+  const deleteBtn = target.closest("[data-delete]");
+  if (deleteBtn) {
+    const name = deleteBtn.dataset.name || deleteBtn.dataset.delete;
+    const answer = window.prompt(t("fd.deleteprompt", { name: name }));
+    if (answer === null) return;
+    if (answer.trim() !== "DELETE") {
+      showToast("warn", t("fd.deletemismatch"));
+      return;
+    }
+    manageAction(() => api("/api/fieldday/delete",
+      { id: deleteBtn.dataset.delete, confirm: "DELETE" }),
+      () => t("fd.deleted"));
+    return;
+  }
+  if (target.id === "fd-import-pick") { $("fd-import-file").click(); return; }
   const activate = target.closest("[data-activate]");
   if (activate) {
     manageAction(() => api("/api/fieldday/activate", { id: activate.dataset.activate }),
@@ -1247,6 +1514,7 @@ document.addEventListener("click", async (event) => {
   if (target.id === "pub-now") {
     manageAction(async () => {
       const result = await api("/api/publish/now", {});
+      if (result.offline) { const e = new Error("offline"); e.offline = true; throw e; }
       if (!result.ok) throw new Error((result.errors || [result.error]).join("; "));
       return result;
     }, (r) => t("pub.result", { up: r.uploaded.length, skip: r.skipped.length }));
@@ -1280,6 +1548,14 @@ document.addEventListener("change", async (event) => {
       manageMsg = { kind: "warn", text: t("manage.error", { e: err.message }) };
       renderManage();
     }
+  }
+  if (event.target.id === "fd-import-file" && event.target.files.length) {
+    const file = event.target.files[0];
+    const content = await fileToB64(file);
+    manageAction(() => api("/api/fieldday/import",
+      { filename: file.name, content_b64: content }),
+      (r) => t("fd.imported", { name: r.name, q: r.qsos, s: r.stations }));
+    return;
   }
   if (event.target.id === "adif-file" && event.target.files.length) {
     const file = event.target.files[0];
@@ -1324,4 +1600,4 @@ applyStaticStrings();
 fetchSnapshot();
 
 // Debug/test handle (also useful for field diagnostics in the console).
-window.__fdt = { state, render, clearFilters, showToast };
+window.__fdt = { state, render, clearFilters, showToast, showCellDetail };

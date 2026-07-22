@@ -164,6 +164,34 @@ class FieldDayRepository:
         self.dir.mkdir(parents=True, exist_ok=True)
         write_json_atomic(self._path(SYNC_LOG_FILE), log)
 
+    def delete(self) -> None:
+        """Permanently remove this field day directory and all its data.
+
+        Irreversible — the caller is responsible for user confirmation.
+        """
+        import shutil
+
+        if self.dir.exists():
+            shutil.rmtree(self.dir)
+
+    def export_bundle(self) -> dict[str, Any]:
+        """Everything about this field day as one portable dict (§ blok B).
+
+        Contains the field day, stations, QSOs, overrides and sync log, so it
+        can be moved to another PC and imported there to continue working.
+        """
+        fieldday = self.load_fieldday()
+        return {
+            "format": "n1mm-fieldday-tracker/bundle",
+            "bundle_version": 1,
+            "exported_at_utc": to_iso_z(utc_now()),
+            "fieldday": fieldday.to_dict() if fieldday else None,
+            "stations": [s.to_dict() for s in self.load_stations()],
+            "qsos": [q.to_dict() for q in self.load_qsos()],
+            "overrides": [o.to_dict() for o in self.load_overrides()],
+            "sync_log": self.load_sync_log(),
+        }
+
 
 # ---------------------------------------------------------------------------
 # Repository management: create / list / open
@@ -179,6 +207,38 @@ def unique_slug(name: str, root_dir: Path | None = None) -> str:
         counter += 1
         slug = f"{base}-{counter}"
     return slug
+
+
+def import_bundle(
+    bundle: dict[str, Any],
+    root_dir: Path | None = None,
+    new_name: str | None = None,
+) -> FieldDayRepository:
+    """Create a new field day from an exported bundle (§ blok B).
+
+    A fresh unique slug is always generated so importing never overwrites an
+    existing field day, even when the same bundle is imported twice. Returns
+    the new repository.
+    """
+    if not isinstance(bundle, dict) or bundle.get("format") != "n1mm-fieldday-tracker/bundle":
+        raise ValueError("not a valid field day export file")
+    fd_data = bundle.get("fieldday")
+    if not fd_data:
+        raise ValueError("export file contains no field day")
+
+    fieldday = FieldDay.from_dict(fd_data)
+    fieldday.name = (new_name or fieldday.name or "Imported field day").strip()
+    fieldday.id = unique_slug(fieldday.name, root_dir=root_dir)
+
+    repo = FieldDayRepository(fieldday.id, root_dir=root_dir)
+    if repo.exists():
+        raise ValueError(f"Field day directory already exists: {repo.dir}")
+    repo.save_fieldday(fieldday)
+    repo.save_stations([Station.from_dict(s) for s in bundle.get("stations", [])])
+    repo.save_qsos([QSO.from_dict(q) for q in bundle.get("qsos", [])])
+    repo.save_overrides([Override.from_dict(o) for o in bundle.get("overrides", [])])
+    write_json_atomic(repo._path(SYNC_LOG_FILE), bundle.get("sync_log", []))
+    return repo
 
 
 def create_fieldday(fieldday: FieldDay, root_dir: Path | None = None) -> FieldDayRepository:

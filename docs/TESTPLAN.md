@@ -305,6 +305,12 @@ staan na her-import van de Excel (manuele stations verdwijnen nooit).
 **J2. Duplicaat geweigerd** — voeg `ON4BAF` toe (lijst heeft `ON4BAF/P`).
 ✅ *Verwacht:* oranje popup dat dit hetzelfde station is.
 
+**J2b. Station verwijderen** — tik op een cel van een station en kies
+*Remove this station*; bevestig.
+✅ *Verwacht:* bevestiging gevraagd; station verdwijnt uit de matrix. Log
+je nadien een QSO voor die roepnaam en voeg je het station weer toe, dan
+staat het contact er weer (QSO's blijven bewaard).
+
 **J3. Velddag afsluiten** — Manage → Close field day → bevestig.
 ✅ *Verwacht:* oranje **CLOSED**-badge bovenaan; testtool-QSO's komen niet
 meer binnen; celklik toont geen override-knoppen; ADIF-import geeft een
@@ -363,7 +369,59 @@ QSO's en wacht.
 ✅ *Verwacht:* nette oranje foutpopup na de automatische herpogingen; de
 tracker zelf blijft gewoon doorwerken; met internet terug lukt het weer.
 
-## Deel L — *(gepland, per komende fase)*
+## Deel L — Verwijderen en export/import van velddagen (blok B)
+
+**L1. Exporteren** — Manage → Velddagen → klik ⭳ bij een velddag.
+✅ *Verwacht:* er wordt een `.fdtracker`-bestand gedownload.
+
+**L2. Importeren op dezelfde of andere pc** — klik "Import field day from
+file…" en kies dat bestand.
+✅ *Verwacht:* popup "Field day imported: … (x QSOs, y stations)"; een
+**nieuwe** velddag verschijnt in de lijst (de oude blijft ongewijzigd);
+na *Open* staat exact dezelfde matrix er, inclusief QSO's en manuele
+statussen.
+
+**L3. Dubbel importeren** — importeer hetzelfde bestand nog eens.
+✅ *Verwacht:* opnieuw een nieuwe velddag; niets wordt overschreven.
+
+**L4. Verwijderen met beveiliging** — klik 🗑 bij een niet-actieve velddag.
+✅ *Verwacht:* je moet het woord **DELETE** typen; iets anders → melding
+"not deleted"; DELETE → velddag en al zijn logs zijn weg.
+
+**L5. Actieve velddag beschermd** — merk op dat de actieve velddag (met ●)
+géén 🗑-knop heeft.
+✅ *Verwacht:* je kan de actieve niet verwijderen; wissel eerst naar een
+andere velddag.
+
+**L6. Testdata opruimen** — maak een testvelddag, log wat, en verwijder ze
+daarna via L4.
+✅ *Verwacht:* de testdata is volledig verdwenen uit de lijst en van schijf.
+
+## Deel M — Publieke pagina per velddagstatus (blok C)
+
+**M1. Live** — actieve velddag binnen de periode, publiceer.
+✅ *Verwacht:* de publieke pagina toont de live matrix; "updated … ago"
+verwijst naar het publicatiemoment, niet naar het herladen.
+
+**M2. Aankomend** — zet de start van de actieve velddag in de toekomst,
+publiceer, open de publieke pagina.
+✅ *Verwacht:* "Field day starts soon" met datum en een aftelling; geen
+matrix of deelnemers zichtbaar; ook niet in het snapshot-bestand.
+
+**M3. Geen actieve velddag** — sluit de actieve velddag af, publiceer.
+✅ *Verwacht:* "No active field day"; staat er een velddag met een
+toekomstige startdatum, dan verschijnt die als "Next planned: …".
+
+**M4. Verlopen** — zet het einde van de actieve velddag meer dan 7 dagen in
+het verleden, publiceer.
+✅ *Verwacht:* "This field day has ended"; geen resultaten meer zichtbaar
+en geen data in het snapshot-bestand.
+
+**M5. Offline** — trek de internetverbinding uit en klik Publish now.
+✅ *Verwacht:* nette melding dat er geen verbinding is; geen herhaalstorm;
+de tracker blijft lokaal werken.
+
+## Deel N — *(gepland, per komende fase)*
 
 - **Fase 17**: taalwissel en/nl/fr/es in de webview
 - **Fase 18**: .exe-build (start zonder Python; Defender-melding wegklikken)
@@ -372,4 +430,4 @@ tracker zelf blijft gewoon doorwerken; met internet terug lukt het weer.
 
 ---
 
-*Testplan bijgewerkt bij: fase 16.*
+*Testplan bijgewerkt bij: blok C.*

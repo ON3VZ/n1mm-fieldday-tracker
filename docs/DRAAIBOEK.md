@@ -178,59 +178,23 @@ kopiëren naar een USB-stick. Nieuwe programmaversies raken deze map nooit.
 
 ---
 
-## STAP 10 — Alles op GitHub zetten
+## STAP 10 — Broncode op GitHub bewaren (enkel voor de beheerder)
 
-### 10a. Git installeren (eenmalig)
+> Dit is **optioneel** en enkel bedoeld voor wie de broncode beheert. Voor
+> het draaien van de tracker of het publiceren van de live-pagina heb je
+> dit **niet** nodig.
 
-1. Download **https://git-scm.com/download/win** en installeer (overal
-   gewoon *Next*).
-2. Nieuw zwart venster; controleer met `git --version`.
+**Gebruik de website, niet git-commando's.** `git pull`/`git push` leidde
+in de praktijk tot merge-conflicten die bestanden beschadigen. Upload
+daarom handmatig:
 
-### 10b. De eerste keer uploaden
+1. Ga naar je repo op github.com (bv. `ON3VZ/n1mm-fieldday-tracker`).
+2. Klik **Add file → Upload files**.
+3. Sleep de projectbestanden en -mappen erin — **behalve** de map `.venv`.
+4. Klik **Commit changes**.
 
-Je hebt op github.com al de repo **`n1mm-fieldday-tracker`** aangemaakt.
-Typ (vervang `JOUWNAAM` door je GitHub-gebruikersnaam):
-
-```
-cd C:\N1MM-Tracker\n1mm_fieldday_tracker
-git init
-git branch -M main
-git remote add origin https://github.com/JOUWNAAM/n1mm-fieldday-tracker.git
-git add -A
-git commit -m "fase 12"
-git push -u origin main
-```
-
-Bij de eerste push opent een venstertje om in te loggen bij GitHub —
-gewoon inloggen in de browser die opent.
-
-### 10c. Elke nieuwe fase uploaden (3 regels)
-
-Na het uitpakken van een nieuwe zip (stap 2) en de testcontrole (stap 4):
-
-```
-cd C:\N1MM-Tracker\n1mm_fieldday_tracker
-git add -A
-git commit -m "fase 13"
-git push
-```
-
-Zo krijg je op GitHub één nette versie per fase, en **daar zie je de
-architectuurtekeningen** uit `docs/ARCHITECTUUR.md` als echte diagrammen.
-
----
-
-## STAP 11 — N1MM aankoppelen (de dag zelf)
-
-Volledig uitgelegd in de **handleiding hoofdstuk 7**; samengevat:
-
-1. N1MM: `Config > Config Ports, Mode Control, Audio, Other… >`
-   tabblad **Broadcast Data**.
-2. Vink **Contacts** aan (níét Lookup).
-3. Bestemming: `127.0.0.1:12060`
-4. Contest: **FDREG1**. Klaar — log een test-QSO en zie de cel kleuren.
-
----
+Voor een nieuwe versie: dezelfde stappen; gewijzigde bestanden worden
+overschreven. Simpel en conflictvrij.
 
 ## STAP 12 — Live publiceren voor het publiek
 
@@ -271,4 +235,4 @@ git add -A && git commit -m "fase X" && git push :: naar GitHub
 
 ---
 
-*Draaiboek bijgewerkt bij: fase 16.*
+*Draaiboek bijgewerkt bij: blok A.*

@@ -203,7 +203,10 @@ niets binnen, zie hoofdstuk 14 (Problemen oplossen).
 Klik rechtsboven op **Manage**. In het paneel kan je:
 
 - **Velddagen**: de lijst van alle velddagen; klik *Open* om te wisselen.
-  Er is altijd precies één velddag actief.
+  Er is altijd precies één velddag actief. **N1MM schrijft altijd naar de
+  actieve velddag** — binnenkomende QSO's komen dus in de velddag die op
+  dat moment open staat. Een afgesloten (CLOSED) velddag negeert
+  binnenkomende QSO's.
 - **Nieuwe velddag**: naam + start en einde (in jouw lokale tijd; het
   programma rekent zelf om naar UTC). Kies optioneel **"Copy from"** om
   stations, banden en instellingen over te nemen van een bestaande velddag
@@ -357,6 +360,38 @@ sectie en opmerking. Handig voor een station dat op de dag zelf nog
 aansluit. Manueel toegevoegde stations verdwijnen nooit bij een
 her-import van de Excel.
 
+**Een station verwijderen:** tik in de matrix op een cel van dat station en
+kies onderaan het detailpaneel **Remove this station**. Er wordt eerst om
+bevestiging gevraagd. Het station verdwijnt uit de lijst; reeds ontvangen
+QSO's blijven op schijf bewaard, dus een her-import of het opnieuw
+toevoegen van de roepnaam brengt alles terug. Zo raak je ook per ongeluk
+toegevoegde of test-stations kwijt.
+
+### Velddag exporteren en importeren (naar een andere pc)
+
+In de sectie **Velddagen** van het Manage-paneel staat bij elke velddag een
+**⭳-knop** (exporteren). Die schrijft de **volledige** velddag —
+instellingen, deelnemers, álle QSO's en manuele statussen — naar één
+`.fdtracker`-bestand. Kopieer dat bestand (USB, mail, netwerk) naar een
+andere pc, en gebruik daar onderaan **"Import field day from file…"** om
+verder te werken. Importeren maakt **altijd een nieuwe velddag** aan en
+overschrijft dus nooit bestaande gegevens; je kan hetzelfde bestand ook
+twee keer importeren zonder risico. Bij de importknop staat een blauw **(?)**
+met deze uitleg.
+
+> Zo kan je bijvoorbeeld op de veldpost werken, exporteren, en thuis of op
+> een reservelaptop naadloos verdergaan met exact dezelfde stand.
+
+### Velddag verwijderen (met beveiliging)
+
+Naast elke **niet-actieve** velddag staat een **🗑-knop**. Omdat dit álle
+onderliggende loggegevens definitief wist, vraagt het programma je eerst om
+ter bevestiging het woord **DELETE** te typen. Typ je iets anders, dan
+gebeurt er niets. Zo ruim je gerust testvelddagen op zonder gevaar voor je
+echte data. Twee veiligheidsgrenzen: de **actieve** velddag kan niet
+verwijderd worden (wissel eerst naar een andere), en er blijft **altijd
+minstens één** velddag bestaan.
+
 ### Velddag afsluiten en heropenen
 
 Manage → **Close field day** (met bevestiging): de velddag gaat op slot —
@@ -442,6 +477,21 @@ exact dezelfde als je lokale, maar **alleen-lezen** — geen knoppen, geen
 overrides. Netwerkfouten worden automatisch opnieuw geprobeerd en
 blokkeren de tracker nooit.
 
+### Wat het publiek ziet, afhankelijk van de velddagstatus
+
+De publieke pagina past zich automatisch aan:
+- **Tijdens de velddag** (actieve velddag, binnen de periode): de live matrix.
+- **Vóór de start**: een aankondiging "Field day starts soon" met de datum
+  en een aftelling.
+- **Geen actieve velddag** (alle afgesloten): "No active field day"; staat
+  er al een volgende velddag gepland, dan toont hij naam en datum.
+- **Vanaf één week na het einde**: de resultaten worden niet meer getoond
+  ("This field day has ended"). Bij de niet-live toestanden staat er ook
+  geen deelnemers- of QSO-data in het gepubliceerde bestand.
+
+> Zorg dat *Automatic publishing* aan staat, zodat deze overgangen (bv. het
+> verdwijnen na een week) vanzelf gepubliceerd worden.
+
 > **Meerdere tracker-laptops** die via GitHub samenvloeien staat bewust
 > **niet** in deze versie; het ontwerp staat klaar op de roadmap (zie
 > README). Meerdere N1MM-PC's naar één tracker kan vandaag al gewoon.
@@ -455,6 +505,23 @@ statusbeslissing per cel, en de volledige lijst van API-endpoints. Kort:
 één Python-proces met een UDP-luisterdraad en een webservertje; alle data
 in gewone JSON-bestanden die atomisch geschreven worden; en één webpagina
 die zowel lokaal als publiek dezelfde `snapshot.json` leest.
+
+## 14b. Knoppen, help en de handleiding-knop
+
+- Rechtsboven staan **Manual** (opent een korte handleiding in het scherm,
+  met o.a. de N1MM- en **firewall**-instellingen) en **Manage** (het
+  beheerpaneel). Op de gepubliceerde, publieke pagina zijn deze weg — die
+  is enkel-lezen.
+- **Windows Firewall**: de eerste keer dat je de tracker start, kan Windows
+  vragen om netwerktoegang toe te staan. Klik **Toegang toestaan** — dat is
+  nodig om de gegevens van N1MM te ontvangen. Weggeklikt? Sta dan
+  `python.exe` toe via *Windows-beveiliging → Firewall- en
+  netwerkbeveiliging → Een app toestaan*.
+- In het Manage-paneel staan bij de technische velden kleine blauwe
+  **(?)-cirkels**. Klik erop voor directe uitleg (N1MM-poort, strict
+  matching, freshness, Excel-kolomkoppen, repository, token…).
+- Het Manage-paneel is nu opgedeeld in **inklapbare secties** — klik een
+  koptitel om ze open of dicht te klappen.
 
 ## 15. Wat als de app crasht tijdens de velddag?
 
@@ -472,6 +539,13 @@ Geen paniek — het systeem is hierop gebouwd:
   daar is die functie precies voor.
 - Als allerlaatste vangnet staat elk ontvangen pakket ruw in
   `raw_packets.log` in de velddagmap.
+
+**Was de tracker een tijd uit terwijl in N1MM werd doorgelogd?** UDP draagt
+enkel live-verkeer, dus die QSO's zijn niet vanzelf ontvangen. Haal ze in
+één keer binnen: in N1MM **File → Export → Export to ADIF**, en in de
+tracker **Manage → ADIF import**. Reeds bekende QSO's worden overgeslagen,
+dus je kan dit zo vaak doen als je wil zonder dubbels. Bij de ADIF-knop
+staat een blauw **(?)** met deze uitleg.
 
 Test dit gerust zelf vooraf: testplan **A6**.
 
@@ -516,5 +590,6 @@ Overloop in deze volgorde:
 
 ---
 
-*Handleiding bijgewerkt bij: fase 16 (nieuw: hoofdstuk 13b — publiceren naar
-GitHub Pages, inclusief het volledige stappenplan voor andere clubs).*
+*Handleiding bijgewerkt bij: blok C (publieke pagina toont automatisch
+live / aankomend / geen actieve / verlopen; na 1 week geen resultaten meer;
+station verwijderen met bevestiging).*

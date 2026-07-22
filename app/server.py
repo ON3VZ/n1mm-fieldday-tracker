@@ -219,6 +219,30 @@ class AppState:
             self.engine.set_stations(stations)
         return {"ok": True, "normalized": normalized}
 
+    def remove_station(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Remove one station from the participant list.
+
+        Requires the field day to be open. QSOs already received for this
+        callsign stay on disk (never destroyed), but the station disappears
+        from the matrix. Re-importing the Excel or re-adding the callsign
+        brings it back. The caller (UI) asks for confirmation first.
+        """
+        self._require_open()
+        normalized = str(payload.get("normalized_callsign", "")).strip()
+        if not normalized:
+            raise ValueError("normalized_callsign is required")
+        with self._lock:
+            station = self.engine.station_index.get(normalized)
+            if station is None:
+                return {"ok": False, "error": f"station not found: {normalized}"}
+            removed = station.original_callsign
+            stations = [s for s in self.engine.stations
+                        if s.normalized_callsign != normalized]
+            self.repo.save_stations(stations)
+            self.engine.set_stations(stations)
+            self.repo.append_sync_log("station_removed", {"callsign": removed})
+        return {"ok": True, "removed": removed}
+
     def close_fieldday(self) -> dict[str, Any]:
         """Close the field day: viewing stays, all changes are blocked."""
         with self._lock:
@@ -280,6 +304,116 @@ class AppState:
         (self._export_dir() / name).write_bytes(content)
         return name, content
 
+    def delete_fieldday(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Delete a field day and all its logs (§ blok B).
+
+        Requires an explicit confirmation string "DELETE" and never allows
+        deleting the currently active field day (switch away first), so test
+        data can be removed but a live field day cannot vanish by accident.
+        """
+        from app.storage.fieldday_repository import FieldDayRepository, list_fielddays
+
+        slug = str(payload.get("id", ""))
+        if str(payload.get("confirm", "")) != "DELETE":
+            return {"ok": False, "error": "confirmation word DELETE required"}
+        if slug == self.repo.slug:
+            return {"ok": False, "error": "cannot delete the active field day; "
+                    "activate another one first"}
+        target = FieldDayRepository(slug, root_dir=self.repo.root_dir)
+        if not target.exists():
+            return {"ok": False, "error": f"field day not found: {slug}"}
+        # Never allow deleting the last remaining field day.
+        if len([fd for fd in list_fielddays(root_dir=self.repo.root_dir)]) <= 1:
+            return {"ok": False, "error": "cannot delete the last field day"}
+        target.delete()
+        return {"ok": True, "deleted": slug}
+
+    def export_fieldday_bundle(self, fieldday_id: str | None = None) -> tuple[str, bytes]:
+        """Export a full field day as a portable .fdtracker JSON file."""
+        import json as jsonlib
+        from app.storage.fieldday_repository import FieldDayRepository
+
+        if fieldday_id and fieldday_id != self.repo.slug:
+            source = FieldDayRepository(fieldday_id, root_dir=self.repo.root_dir)
+        else:
+            source = self.repo
+        with self._lock:
+            bundle = source.export_bundle()
+        content = jsonlib.dumps(bundle, indent=1).encode("utf-8")
+        slug = source.slug
+        from app.core.models import utc_now
+        name = f"{slug}-{utc_now():%Y%m%d-%H%M%S}.fdtracker"
+        return name, content
+
+    def import_fieldday_bundle(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Import a field day bundle uploaded as base64 (§ blok B)."""
+        import json as jsonlib
+        from app.storage.fieldday_repository import import_bundle
+
+        _, blob = self._decode_upload(payload)
+        try:
+            bundle = jsonlib.loads(blob.decode("utf-8"))
+        except (UnicodeDecodeError, jsonlib.JSONDecodeError) as exc:
+            raise ValueError(f"not a readable export file: {exc}") from exc
+        new_name = str(payload.get("new_name", "") or "") or None
+        repo = import_bundle(bundle, root_dir=self.repo.root_dir, new_name=new_name)
+        fieldday = repo.load_fieldday()
+        return {
+            "ok": True,
+            "id": repo.slug,
+            "name": fieldday.name if fieldday else repo.slug,
+            "stations": len(repo.load_stations()),
+            "qsos": len(repo.load_qsos()),
+        }
+
+    def _publication_state(self) -> dict[str, Any]:
+        """Decide what the public page should show (§ blok C).
+
+        States:
+        - "live": there is an open (not closed) field day and now is within
+          [start, end] → publish the full matrix.
+        - "upcoming": open field day but now < start → show a countdown page.
+        - "none": no open field day at all → "no active field day", plus the
+          next known field day date if any.
+        - "expired": the open field day ended more than one week ago → the
+          public page must stop showing the data.
+        """
+        from datetime import timedelta
+        from app.storage.fieldday_repository import list_fielddays
+
+        now = utc_now()
+        fieldday = self.engine.fieldday
+        active_open = not fieldday.closed
+
+        # Find the next upcoming field day (any field day starting in future).
+        upcoming = None
+        for fd in list_fielddays(root_dir=self.repo.root_dir):
+            if fd.start_utc > now:
+                if upcoming is None or fd.start_utc < upcoming.start_utc:
+                    upcoming = fd
+
+        if active_open and fieldday.start_utc <= now <= fieldday.end_utc:
+            state = "live"
+        elif active_open and now < fieldday.start_utc:
+            state = "upcoming"
+        elif active_open and now > fieldday.end_utc + timedelta(days=7):
+            state = "expired"
+        elif active_open and now > fieldday.end_utc:
+            # ended but within the one-week grace period → keep showing (live)
+            state = "live"
+        else:
+            state = "none"
+
+        block: dict[str, Any] = {"state": state}
+        if state in ("upcoming",) or (state == "none" and upcoming is not None):
+            ref = fieldday if state == "upcoming" else upcoming
+            block["next_name"] = ref.name
+            block["next_start_utc"] = to_iso_z(ref.start_utc)
+            block["next_location"] = ref.location
+        if state in ("live", "expired"):
+            block["end_utc"] = to_iso_z(fieldday.end_utc)
+        return block
+
     # -- publishing (phase 16) --------------------------------------------
 
     def _publish_settings(self):
@@ -303,16 +437,31 @@ class AppState:
                     "(store one via the Publish settings, or set "
                     "N1MM_TRACKER_GH_TOKEN)"}
         try:
+            pub_state = self._publication_state()
             with self._lock:
-                sources = (
-                    self.listener.sources_status(
-                        self.engine.fieldday.freshness_threshold_seconds)
-                    if self.listener is not None else []
-                )
-                snapshot = build_snapshot(
-                    self.engine, sources, readonly=True,
-                    include_private=publish.include_private,
-                )
+                if pub_state["state"] == "live":
+                    sources = (
+                        self.listener.sources_status(
+                            self.engine.fieldday.freshness_threshold_seconds)
+                        if self.listener is not None else []
+                    )
+                    snapshot = build_snapshot(
+                        self.engine, sources, readonly=True,
+                        include_private=publish.include_private,
+                    )
+                else:
+                    # upcoming / none / expired: publish only the state block,
+                    # never the station list or QSOs.
+                    from app.core.models import to_iso_z as _iso, utc_now as _now
+                    snapshot = {
+                        "generated_at_utc": _iso(_now()),
+                        "readonly": True,
+                        "publication": pub_state,
+                        "field_day": {"name": self.engine.fieldday.name},
+                        "stations": [], "bands": [], "stats": {},
+                        "legend": {}, "colors": {},
+                    }
+                snapshot["publication"] = pub_state
             files: dict[str, bytes] = {
                 "snapshot.json": jsonlib.dumps(snapshot, indent=1).encode("utf-8"),
             }
@@ -332,9 +481,16 @@ class AppState:
             )
             payload = result.to_dict()
         except Exception as exc:  # noqa: BLE001 — publiceren mag nooit crashen
-            logger.error("Publish failed: %s", exc)
-            payload = {"ok": False, "uploaded": [], "skipped": [],
-                       "errors": [str(exc)]}
+            from app.publish.github_publisher import OfflineError
+
+            if isinstance(exc, OfflineError):
+                logger.info("Publish skipped: offline")
+                payload = {"ok": False, "offline": True, "uploaded": [],
+                           "skipped": [], "errors": ["offline"]}
+            else:
+                logger.error("Publish failed: %s", exc)
+                payload = {"ok": False, "uploaded": [], "skipped": [],
+                           "errors": [str(exc)]}
         payload["at_utc"] = to_iso_z(utc_now())
         with self._lock:
             self._last_publish = payload
@@ -374,15 +530,23 @@ class AppState:
             import time as time_mod
 
             last_run = 0.0
+            offline_backoff_until = 0.0
             while not self._auto_publish_stop.is_set():
                 time_mod.sleep(5)
                 try:
                     publish = self._publish_settings()
                     interval = publish.auto_interval_minutes
+                    now = time_mod.monotonic()
+                    # When offline we stop hammering: wait at least 5 minutes
+                    # before the next attempt, regardless of the interval.
+                    if now < offline_backoff_until:
+                        continue
                     if (publish.enabled and publish.repo and interval > 0
-                            and time_mod.monotonic() - last_run >= interval * 60):
-                        last_run = time_mod.monotonic()
-                        self.publish_now()
+                            and now - last_run >= interval * 60):
+                        last_run = now
+                        result = self.publish_now()
+                        if result.get("offline"):
+                            offline_backoff_until = now + 300
                 except Exception:  # noqa: BLE001
                     logger.exception("Auto-publish iteration failed")
 
@@ -767,6 +931,14 @@ class TrackerRequestHandler(SimpleHTTPRequestHandler):
         if path == "/api/publish/status":
             self._send_json(state.publish_status())
             return
+        if path == "/api/fieldday/export":
+            from urllib.parse import urlparse, parse_qs
+
+            query = parse_qs(urlparse(self.path).query)
+            fieldday_id = query.get("id", [None])[0]
+            name, content = state.export_fieldday_bundle(fieldday_id)
+            self._send_file(content, name, "application/json")
+            return
         super().do_GET()
 
     def do_POST(self) -> None:  # noqa: N802
@@ -804,10 +976,18 @@ class TrackerRequestHandler(SimpleHTTPRequestHandler):
                 self._send_json(state.update_app_settings(payload))
             elif path == "/api/station/add":
                 self._send_json(state.add_station(payload))
+            elif path == "/api/station/remove":
+                result = state.remove_station(payload)
+                self._send_json(result, 200 if result.get("ok") else 400)
             elif path == "/api/fieldday/close":
                 self._send_json(state.close_fieldday())
             elif path == "/api/fieldday/reopen":
                 self._send_json(state.reopen_fieldday())
+            elif path == "/api/fieldday/delete":
+                result = state.delete_fieldday(payload)
+                self._send_json(result, 200 if result.get("ok") else 400)
+            elif path == "/api/fieldday/import":
+                self._send_json(state.import_fieldday_bundle(payload))
             elif path == "/api/publish/now":
                 self._send_json(state.publish_now())
             elif path == "/api/publish/token":

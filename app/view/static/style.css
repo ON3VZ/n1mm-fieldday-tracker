@@ -19,6 +19,7 @@
   --ok: #22C55E;
   --warn: #FF6B35;         /* WLD-oranje */
   --cell-size: 52px;
+  --mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
   font-size: 17px;         /* tablet baseline: everything scales from here */
 }
 
@@ -367,3 +368,64 @@ table.list { border-collapse: collapse; width: 100%; }
   letter-spacing: 0.05em;
 }
 #addst-open { margin-left: auto; }
+
+/* ---------- block A: help dots, accordion, manual, secondary btn ---------- */
+
+.help-dot {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; padding: 0; margin-left: 2px;
+  border: none; border-radius: 50%; cursor: pointer;
+  background: var(--teal); color: #fff; font-weight: 700; font-size: 12px;
+  line-height: 1; vertical-align: middle;
+}
+.help-dot:hover { background: var(--chrome); }
+.help-pop {
+  position: absolute; z-index: 70; max-width: 22rem;
+  background: var(--chrome); color: #fff;
+  padding: 0.7rem 0.9rem; border-radius: 8px; font-size: 0.86rem;
+  line-height: 1.35; box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+details.acc { border-bottom: 1px solid var(--line-soft); }
+details.acc > summary {
+  cursor: pointer; list-style: none; padding: 0.7rem 0.2rem;
+  font-weight: 800; font-size: 1rem; color: var(--chrome);
+  display: flex; align-items: center; gap: 0.4rem;
+}
+details.acc > summary::-webkit-details-marker { display: none; }
+details.acc > summary::before {
+  content: "▸"; color: var(--teal); font-size: 0.9rem; transition: transform 0.15s;
+}
+details.acc[open] > summary::before { transform: rotate(90deg); }
+details.acc > summary:hover { color: var(--teal); }
+.acc-body { padding: 0 0.2rem 0.8rem; }
+
+.secondary-btn { background: rgba(255,255,255,0.10); }
+
+.manual-body h3 { margin: 1rem 0 0.3rem; color: var(--chrome); font-size: 1rem;
+  border-bottom: 1px solid var(--line-soft); padding-bottom: 0.2rem; }
+.manual-body p { margin: 0.3rem 0 0.6rem; line-height: 1.45; font-size: 0.92rem; }
+.manual-body code { background: var(--paper-soft); padding: 0.05rem 0.3rem;
+  border-radius: 4px; font-family: var(--mono, monospace); font-size: 0.85rem; }
+
+/* ---------- block B: field day actions ---------- */
+.fd-actions { display: inline-flex; gap: 0.35rem; align-items: center; }
+.fd-list li { gap: 0.5rem; }
+.fd-actions .btn { min-height: 34px; padding: 0.2rem 0.55rem; }
+
+/* ---------- block C: publication notice ---------- */
+.pub-notice {
+  max-width: 34rem; margin: 4rem auto; text-align: center;
+  padding: 2.5rem 2rem; background: var(--paper);
+  border: 1px solid var(--line-soft); border-radius: 14px;
+}
+.pub-notice .pub-logo {
+  font-family: 'Arial Black', Impact, sans-serif; font-weight: 900;
+  font-size: 2.4rem; color: var(--chrome); letter-spacing: -2px;
+  border-bottom: 3px solid var(--teal); display: inline-block;
+  padding-bottom: 0.3rem; margin-bottom: 1.2rem;
+}
+.pub-notice h2 { margin: 0 0 0.6rem; color: var(--chrome); }
+.pub-notice p { margin: 0; color: var(--ink-soft); font-size: 1.05rem; line-height: 1.5; }
+
+.rm-hint { font-size: 0.85rem; color: var(--ink-soft); margin: 0.3rem 0 0.5rem; }

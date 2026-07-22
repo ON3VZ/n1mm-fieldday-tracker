@@ -21,6 +21,10 @@ import requests
 logger = logging.getLogger(__name__)
 
 DEFAULT_API_BASE = "https://api.github.com"
+
+
+class OfflineError(RuntimeError):
+    """Raised when there is no network connection at all."""
 RETRIES = 3
 BACKOFF_SECONDS = (1, 3, 6)
 TIMEOUT_S = 12
@@ -80,6 +84,13 @@ class GitHubPublisher:
                     last_error = RuntimeError(f"HTTP {response.status_code}")
                 else:
                     return response
+            except (requests.ConnectionError, requests.exceptions.Timeout) as exc:
+                # No internet / DNS failure / timeout: retrying in a tight loop
+                # is pointless and wastes time. Stop immediately with a clear
+                # signal so the caller reports "offline" and does not hammer.
+                raise OfflineError(
+                    "no network connection — publishing skipped"
+                ) from exc
             except requests.RequestException as exc:
                 last_error = exc
             if attempt < RETRIES - 1:
@@ -131,6 +142,8 @@ class GitHubPublisher:
                     path, content, message or f"tracker update: {rel_path}"
                 )
                 (result.uploaded if outcome == "uploaded" else result.skipped).append(path)
+            except OfflineError:
+                raise  # stop the whole publish; no point trying more files
             except Exception as exc:
                 result.ok = False
                 result.errors.append(f"{path}: {exc}")

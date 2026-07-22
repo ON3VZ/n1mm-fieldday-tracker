@@ -20,6 +20,7 @@
     </div>
   </div>
   <div class="topbar-actions">
+    <button id="manual-open" class="manage-btn secondary-btn" data-i18n="manual.open">Manual</button>
     <button id="manage-open" class="manage-btn" data-i18n="manage.open">Manage</button>
   </div>
   <div class="livebar" id="livebar">
@@ -64,6 +65,14 @@
 </aside>
 
 <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+<aside class="drawer" id="manual-drawer" hidden aria-label="Manual">
+  <div class="drawer-head">
+    <strong data-i18n="manual.title">Quick manual</strong>
+    <button id="manual-close" class="detail-close" aria-label="Close">×</button>
+  </div>
+  <div id="manual-body" class="manual-body"></div>
+</aside>
+
 <aside class="drawer" id="manage-drawer" hidden aria-label="Field day management">
   <div class="drawer-head">
     <strong data-i18n="manage.title">Field day management</strong>

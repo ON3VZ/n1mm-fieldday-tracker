@@ -486,3 +486,155 @@ class TestExports:
         content = build_pdf(state.engine)
         # 14 banden > 12 per pagina → minstens 2 pagina's
         assert content.count(b"/Type /Page") >= 2 or content.count(b"/Page") >= 2
+
+
+class TestDeleteAndBundle:
+    def _make_second(self, http_port):
+        status, result = http_post(http_port, "/api/fieldday/create", {
+            "name": "Tweede velddag",
+            "start_utc": "2027-06-05T13:00:00Z",
+            "end_utc": "2027-06-06T13:00:00Z",
+        })
+        assert status == 200
+        return result["id"]
+
+    def test_delete_requires_confirmation_word(self, running_app):
+        state, repo, _, http_port = running_app
+        other = self._make_second(http_port)
+        # zonder DELETE → geweigerd
+        status, result = http_post(http_port, "/api/fieldday/delete", {"id": other})
+        assert status == 400 and "DELETE" in result["error"]
+        # verkeerd woord → geweigerd
+        status, result = http_post(http_port, "/api/fieldday/delete",
+                                   {"id": other, "confirm": "delete"})
+        assert status == 400
+        # correct → verwijderd
+        status, result = http_post(http_port, "/api/fieldday/delete",
+                                   {"id": other, "confirm": "DELETE"})
+        assert status == 200 and result["deleted"] == other
+        _, listing = http_get(http_port, "/api/fielddays")
+        assert other not in [fd["id"] for fd in listing["fielddays"]]
+
+    def test_cannot_delete_active(self, running_app):
+        state, repo, _, http_port = running_app
+        self._make_second(http_port)  # zodat het niet de laatste is
+        status, result = http_post(http_port, "/api/fieldday/delete",
+                                   {"id": repo.slug, "confirm": "DELETE"})
+        assert status == 400 and "active" in result["error"]
+
+    def test_cannot_delete_last(self, running_app):
+        state, repo, _, http_port = running_app
+        # activeer een tweede en verwijder de originele zodat er nog één rest
+        other = self._make_second(http_port)
+        http_post(http_port, "/api/fieldday/activate", {"id": other})
+        http_post(http_port, "/api/fieldday/delete",
+                  {"id": repo.slug, "confirm": "DELETE"})
+        # nu nog één over, en die is per definitie de actieve → verwijderen
+        # wordt geweigerd (de actieve mag nooit weg; er blijft er dus altijd één)
+        status, result = http_post(http_port, "/api/fieldday/delete",
+                                   {"id": other, "confirm": "DELETE"})
+        assert status == 400
+        _, listing = http_get(http_port, "/api/fielddays")
+        assert len(listing["fielddays"]) == 1  # er blijft altijd één bestaan
+
+    def test_export_import_roundtrip(self, running_app):
+        import base64
+        state, repo, udp_port, http_port = running_app
+        # een QSO en een override toevoegen
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        send_udp(udp_port, contactinfo(timestamp=now))
+        assert wait_until(lambda: state.listener.stats.processed == 1)
+        http_post(http_port, "/api/override", {
+            "normalized_callsign": "ON4CDZ", "band": "40m",
+            "override_type": "manual_worked", "reason": "papier"})
+
+        # exporteren (GET, bestand)
+        with urllib.request.urlopen(
+                f"http://127.0.0.1:{http_port}/api/fieldday/export", timeout=10) as resp:
+            assert resp.status == 200
+            disp = resp.headers["Content-Disposition"]
+            assert ".fdtracker" in disp
+            bundle_bytes = resp.read()
+        bundle = json.loads(bundle_bytes.decode("utf-8"))
+        assert bundle["format"] == "n1mm-fieldday-tracker/bundle"
+        assert len(bundle["qsos"]) == 1
+        assert len(bundle["overrides"]) == 1
+        assert len(bundle["stations"]) == 2
+
+        # importeren → nieuwe velddag met alles erin
+        status, result = http_post(http_port, "/api/fieldday/import", {
+            "filename": "test.fdtracker",
+            "content_b64": base64.b64encode(bundle_bytes).decode(),
+        })
+        assert status == 200 and result["ok"]
+        assert result["qsos"] == 1 and result["stations"] == 2
+        new_id = result["id"]
+        assert new_id != repo.slug  # nieuwe velddag, niet overschreven
+
+        # activeer de import en controleer dat QSO + override er zijn
+        http_post(http_port, "/api/fieldday/activate", {"id": new_id})
+        _, snapshot = http_get(http_port, "/snapshot.json")
+        assert cell_status(snapshot, "ON4BAF", "80m") == "worked_by_n1mm"
+        cdz = next(s for s in snapshot["stations"] if s["normalized"] == "ON4CDZ")
+        assert cdz["cells"]["40m"]["status"] == "manual_worked"
+
+    def test_import_rejects_garbage(self, running_app):
+        import base64
+        _, _, _, http_port = running_app
+        status, result = http_post(http_port, "/api/fieldday/import", {
+            "filename": "x.fdtracker",
+            "content_b64": base64.b64encode(b"not json at all").decode(),
+        })
+        assert status == 400
+
+    def test_import_rejects_wrong_format(self, running_app):
+        import base64
+        _, _, _, http_port = running_app
+        blob = json.dumps({"format": "something-else"}).encode()
+        status, result = http_post(http_port, "/api/fieldday/import", {
+            "filename": "x.fdtracker", "content_b64": base64.b64encode(blob).decode(),
+        })
+        assert status == 400
+
+
+class TestRemoveStation:
+    def test_remove_station(self, running_app):
+        state, repo, _, http_port = running_app
+        # ON4BAF/P en ON4CDZ/P staan in de lijst
+        status, result = http_post(http_port, "/api/station/remove",
+                                   {"normalized_callsign": "ON4BAF"})
+        assert status == 200 and result["removed"] == "ON4BAF/P"
+        assert "ON4BAF" not in state.engine.station_index
+        stored = {s.normalized_callsign for s in repo.load_stations()}
+        assert stored == {"ON4CDZ"}
+        _, snapshot = http_get(http_port, "/snapshot.json")
+        assert all(s["normalized"] != "ON4BAF" for s in snapshot["stations"])
+
+    def test_remove_keeps_qsos_on_disk(self, running_app):
+        state, repo, udp_port, http_port = running_app
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        send_udp(udp_port, contactinfo(timestamp=now))  # QSO voor ON4BAF/P
+        assert wait_until(lambda: state.listener.stats.processed == 1)
+        http_post(http_port, "/api/station/remove", {"normalized_callsign": "ON4BAF"})
+        # QSO blijft bewaard op schijf (niet vernietigd)
+        assert len(repo.load_qsos()) == 1
+        # opnieuw toevoegen brengt het station terug, met het QSO herkend
+        http_post(http_port, "/api/station/add", {"callsign": "ON4BAF/P"})
+        http_post(http_port, "/api/sync", {})
+        _, snapshot = http_get(http_port, "/snapshot.json")
+        assert cell_status(snapshot, "ON4BAF", "80m") == "worked_by_n1mm"
+
+    def test_remove_unknown_400(self, running_app):
+        _, _, _, http_port = running_app
+        status, result = http_post(http_port, "/api/station/remove",
+                                   {"normalized_callsign": "ON9XYZ"})
+        assert status == 400
+
+    def test_remove_blocked_when_closed(self, running_app):
+        _, _, _, http_port = running_app
+        http_post(http_port, "/api/fieldday/close", {})
+        status, result = http_post(http_port, "/api/station/remove",
+                                   {"normalized_callsign": "ON4BAF"})
+        assert status == 400 and "closed" in result["error"]

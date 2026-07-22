@@ -127,7 +127,11 @@ def _rows_to_result(
 
     if "callsign" not in header_map.values():
         result.issues.append(
-            RowIssue(1, "", "no callsign column found (expected: Call / Callsign / Roepnaam)")
+            RowIssue(1, "", "no callsign column found. The first row must contain "
+                     "column headers. Recognised headers (any order): Callsign "
+                     "(Call/Callsign/Roepnaam, required), Name/Naam, Club, "
+                     "Category/Categorie, Section/Sectie, Remarks/Opmerking, and "
+                     "band columns like 40m/80m/160m.")
         )
         return result
 
