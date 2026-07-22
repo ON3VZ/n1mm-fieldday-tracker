@@ -785,8 +785,23 @@ function render() {
     matrix: renderMatrix, towork: renderToWork, band: renderBand,
     station: renderStation, sources: renderSources, stats: renderStats,
   };
+  // Preserve scroll position across the periodic rebuild (every 5s the
+  // snapshot is refreshed and the view is recreated); without this the page
+  // would jump back to the top while you are scrolling through the matrix.
+  const pageScroll = window.scrollY;
+  const prevInner = root.querySelector(".matrix-wrap");
+  const innerScroll = prevInner
+    ? { left: prevInner.scrollLeft, top: prevInner.scrollTop } : null;
+
   root.innerHTML = "";
   root.appendChild(views[state.view]());
+
+  const newInner = root.querySelector(".matrix-wrap");
+  if (newInner && innerScroll) {
+    newInner.scrollLeft = innerScroll.left;
+    newInner.scrollTop = innerScroll.top;
+  }
+  if (pageScroll) window.scrollTo(0, pageScroll);
 }
 
 function ensureAddButton() {
