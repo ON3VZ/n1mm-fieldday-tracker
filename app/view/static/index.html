@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Field Day Tracker</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-main">
+    <h1 id="fd-name">Field Day Tracker</h1>
+    <div class="topbar-sub">
+      <span id="fd-callsign" class="mono"></span>
+      <span id="fd-period"></span>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <button id="manage-open" class="manage-btn" data-i18n="manage.open">Manage</button>
+  </div>
+  <div class="livebar" id="livebar">
+    <span class="livedot" id="livedot" aria-hidden="true"></span>
+    <span id="live-text" data-i18n="live.loading">Loading…</span>
+  </div>
+</header>
+
+<nav class="tabs" id="tabs" role="tablist">
+  <button class="tab" data-view="matrix" data-i18n="view.matrix">Matrix</button>
+  <button class="tab" data-view="towork" data-i18n="view.towork">Still to work</button>
+  <button class="tab" data-view="band" data-i18n="view.band">Per band</button>
+  <button class="tab" data-view="station" data-i18n="view.station">Per station</button>
+  <button class="tab" data-view="sources" data-i18n="view.sources">Per source PC</button>
+  <button class="tab" data-view="stats" data-i18n="view.stats">Statistics</button>
+</nav>
+
+<section class="filters" id="filters">
+  <input type="search" id="f-search" class="f-search mono"
+         data-i18n-placeholder="filter.search" placeholder="Search callsign…">
+  <select id="f-status">
+    <option value="all" data-i18n="filter.status.all">All statuses</option>
+    <option value="worked" data-i18n="filter.status.worked">Worked</option>
+    <option value="open" data-i18n="filter.status.open">Not worked</option>
+    <option value="partial" data-i18n="filter.status.partial">Partially worked</option>
+  </select>
+  <select id="f-band"></select>
+  <select id="f-category"></select>
+  <select id="f-section"></select>
+</section>
+
+<main id="view-root">
+  <div class="empty" data-i18n="live.loading">Loading…</div>
+</main>
+
+<aside class="detail" id="detail" hidden>
+  <div class="detail-head">
+    <strong id="detail-title" class="mono"></strong>
+    <button id="detail-close" class="detail-close" aria-label="Close">×</button>
+  </div>
+  <div id="detail-body"></div>
+</aside>
+
+<div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+<aside class="drawer" id="manage-drawer" hidden aria-label="Field day management">
+  <div class="drawer-head">
+    <strong data-i18n="manage.title">Field day management</strong>
+    <button id="manage-close" class="detail-close" aria-label="Close">×</button>
+  </div>
+  <div id="manage-body"></div>
+</aside>
+
+<footer class="legend" id="legend"></footer>
+
+<script src="app.js"></script>
+</body>
+</html>

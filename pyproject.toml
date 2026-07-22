@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "n1mm-fieldday-tracker"
+version = "0.1.0"
+description = "Realtime worked-stations matrix next to N1MM Logger+ for field days"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+    "openpyxl>=3.1",
+    "fpdf2>=2.7",
+    "keyring>=24",
+    "requests>=2.31",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+n1mm-fieldday-tracker = "app.main:main"
+
+[tool.setuptools]
+packages = { find = { include = ["app*"] } }
+
+[tool.setuptools.package-data]
+"app.view" = ["static/**/*"]
+"app.i18n" = ["**/*.json"]

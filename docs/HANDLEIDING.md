@@ -1,0 +1,391 @@
+# N1MM Field Day Tracker — Handleiding
+
+> **Versie:** fase 1 (projectsetup). Deze handleiding groeit mee met elke
+> oplevering. Onderdelen die nog niet beschikbaar zijn, staan gemarkeerd als
+> *(volgt in een latere fase)*.
+
+---
+
+## Inhoud
+
+1. [Wat is dit programma?](#1-wat-is-dit-programma)
+2. [Wat heb je nodig?](#2-wat-heb-je-nodig)
+3. [Installatie op Windows](#3-installatie-op-windows)
+4. [Installatie op Linux](#4-installatie-op-linux)
+5. [Het programma starten](#5-het-programma-starten)
+6. [Waar staan mijn gegevens?](#6-waar-staan-mijn-gegevens)
+7. [N1MM Logger+ instellen](#7-n1mm-logger-instellen) *(volgt)*
+8. [Een velddag aanmaken](#8-een-velddag-aanmaken) *(volgt)*
+9. [Deelnemerslijst importeren](#9-deelnemerslijst-importeren) *(volgt)*
+10. [De matrix gebruiken](#10-de-matrix-gebruiken) *(volgt)*
+11. [ADIF-import](#11-adif-import) *(volgt)*
+12. [Exporteren naar CSV en PDF](#12-exporteren-naar-csv-en-pdf) *(volgt)*
+13. [Publiceren naar GitHub Pages](#13-publiceren-naar-github-pages) *(volgt)*
+14. [Hoe werkt het technisch?](#14-hoe-werkt-het-technisch)\n15. [Problemen oplossen](#15-problemen-oplossen)
+
+---
+
+## 1. Wat is dit programma?
+
+De N1MM Field Day Tracker draait **naast** N1MM Logger+ tijdens een velddag.
+N1MM blijft de officiële logger — je logt daar zoals altijd. De tracker
+luistert mee en toont in een overzichtelijke **matrix** welke deelnemende
+stations op welke banden al gewerkt zijn, en welke nog open staan.
+
+Het vervangt de Excel die tot nu toe handmatig werd bijgehouden.
+
+Belangrijk om te weten:
+
+- Alles werkt **offline**. Enkel het (optionele) publiceren van de publieke
+  webpagina vereist internet.
+- Er wordt **niets geïnstalleerd** buiten het programma zelf: geen database,
+  geen server, geen account.
+- Alle gegevens staan in gewone bestanden op je eigen laptop.
+
+## 2. Wat heb je nodig?
+
+- Een laptop met **Windows** of **Linux** — dezelfde laptop waarop N1MM draait.
+- **Python 3.11 of nieuwer** (enkel tijdens de ontwikkelfase; later komt er
+  een kant-en-klare `.exe` voor Windows waarvoor je geen Python nodig hebt).
+- De deelnemerslijst als Excel- (`.xlsx`) of CSV-bestand.
+
+### Heb ik al Python?
+
+Open een opdrachtprompt (Windows: druk op de Windows-toets, typ `cmd`,
+Enter) of terminal (Linux) en typ:
+
+```
+python --version
+```
+
+Zie je `Python 3.11.x` of hoger, dan ben je klaar. Zie je een foutmelding of
+een lager versienummer, volg dan de installatiestap hieronder.
+
+## 3. Installatie op Windows
+
+### Stap 1 — Python installeren (indien nodig)
+
+1. Ga naar <https://www.python.org/downloads/> en download de nieuwste
+   Python 3-versie.
+2. Start het installatieprogramma.
+3. **Belangrijk:** vink onderaan **"Add python.exe to PATH"** aan vóór je op
+   *Install Now* klikt.
+4. Controleer na afloop met `python --version` in een **nieuw** cmd-venster.
+
+### Stap 2 — Projectmap aanmaken
+
+1. Pak het geleverde zip-bestand uit, bijvoorbeeld naar
+   `C:\N1MM-Tracker\`. Je hebt dan een map
+   `C:\N1MM-Tracker\n1mm_fieldday_tracker\` met daarin o.a. `app\` en
+   `README.md`.
+
+### Stap 3 — Virtuele omgeving aanmaken (eenmalig)
+
+Een virtuele omgeving is een afgeschermd hoekje waarin het programma zijn
+hulppakketten bewaart, zonder iets aan de rest van je pc te veranderen.
+
+Open cmd en typ:
+
+```
+cd C:\N1MM-Tracker\n1mm_fieldday_tracker
+python -m venv .venv
+```
+
+### Stap 4 — Hulppakketten installeren (eenmalig)
+
+```
+.venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+Je ziet nu `(.venv)` vooraan je prompt staan — dat is normaal en goed.
+
+## 4. Installatie op Linux
+
+```bash
+# Python 3.11+ installeren indien nodig (Debian/Ubuntu):
+sudo apt install python3 python3-venv
+
+# Projectmap: pak de zip uit, bv. naar ~/n1mm-tracker
+cd ~/n1mm-tracker/n1mm_fieldday_tracker
+
+# Virtuele omgeving aanmaken (eenmalig)
+python3 -m venv .venv
+
+# Activeren en hulppakketten installeren (eenmalig)
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+## 5. Het programma starten
+
+Telkens je het programma wil starten:
+
+**Windows:**
+
+```
+cd C:\N1MM-Tracker\n1mm_fieldday_tracker
+.venv\Scripts\activate
+python -m app.main
+```
+
+**Linux:**
+
+```bash
+cd ~/n1mm-tracker/n1mm_fieldday_tracker
+source .venv/bin/activate
+python -m app.main
+```
+
+Bij het starten opent automatisch je webbrowser met de tracker
+(`http://127.0.0.1:8765`). In het terminalvenster zie je de actieve
+velddag, het aantal stations en of de UDP-ontvangst luistert. Stoppen doe
+je met **Ctrl+C** in dat venster.
+
+Handige opties:
+
+```
+python -m app.main --import-excel deelnemerslijst.xlsx   # lijst importeren
+python -m app.main --no-browser                          # zonder browser
+```
+
+Bij de allereerste start (nog geen velddag) maakt het programma er
+automatisch één aan; nette velddagbeheer-schermen volgen in een latere
+fase.
+
+## 6. Waar staan mijn gegevens?
+
+Al je velddagen, instellingen en logs staan **buiten** de programmamap, zodat
+je het programma kan bijwerken zonder gegevens te verliezen:
+
+- **Windows:** `%LOCALAPPDATA%\N1MM Field Day Tracker\`
+  (typ dat pad letterlijk in de adresbalk van Verkenner)
+- **Linux:** `~/.local/share/N1MM Field Day Tracker/`
+
+Elke velddag krijgt daarin zijn eigen submap onder `fielddays\`. Een back-up
+maken = die map kopiëren naar een USB-stick.
+
+## 7. N1MM Logger+ instellen
+
+De tracker draait op **dezelfde laptop als N1MM**. Zo stel je N1MM in:
+
+1. Open in N1MM: `Config > Config Ports, Mode Control, Audio, Other…`
+2. Ga naar het tabblad **Broadcast Data**.
+3. Vink **Contacts** aan. (N1MM stuurt dan een berichtje bij elk gelogd,
+   bewerkt én verwijderd QSO.)
+4. Vul als bestemming in: `127.0.0.1:12060`
+5. Klik OK. De contest in N1MM is **`FDREG1`**.
+
+**Belangrijk — vink *Lookup* NIET aan.** Dat stuurt berichten die op QSO's
+lijken maar het niet zijn (ze vertrekken al bij het opzoeken van een
+roepnaam). De tracker herkent en negeert ze, maar aanvinken heeft geen nut.
+
+### Meerdere N1MM-computers
+
+- **Netwerk-modus** (alle PC's delen één log): vink op **precies één**
+  station ook **All Computers** aan. Dat ene station stuurt dan álle QSO's
+  van het hele netwerk door. Meerdere stations met deze optie tegelijk
+  veroorzaakt een pakketstorm — niet doen.
+- **Losse logs per PC**: elke PC stuurt zelf naar het IP-adres van de
+  trackerlaptop, bv. `192.168.1.50:12060`. Zet dan in de tracker-settings
+  de UDP-host op `0.0.0.0` (standaard staat die veilig op `127.0.0.1` en
+  komt alleen verkeer van de eigen laptop binnen).
+
+### Werkt de verbinding?
+
+De tracker toont per bron-PC wanneer het laatste pakket binnenkwam. Komt er
+niets binnen, zie hoofdstuk 14 (Problemen oplossen).
+
+## 8. Een velddag aanmaken en beheren
+
+Klik rechtsboven op **Manage**. In het paneel kan je:
+
+- **Velddagen**: de lijst van alle velddagen; klik *Open* om te wisselen.
+  Er is altijd precies één velddag actief.
+- **Nieuwe velddag**: naam + start en einde (in jouw lokale tijd; het
+  programma rekent zelf om naar UTC). Kies optioneel **"Copy from"** om
+  stations, banden en instellingen over te nemen van een bestaande velddag
+  — de matrix start dan toch leeg, QSO's en manuele statussen gaan nooit mee.
+- **Huidige velddag bewerken**: naam, locatie, event-callsign, club,
+  periode en de **te volgen banden** (vinkjes).
+- **Deelnemerslijst**: importeer de Excel of CSV. Importeer je een nieuwe
+  versie terwijl er al een lijst is, en ontbreken daarin stations, dan
+  toont het programma **eerst welke** en vraagt het bevestiging voor het ze
+  verwijdert. Handmatig toegevoegde stations verdwijnen nooit vanzelf, en
+  manuele statussen blijven staan.
+- **ADIF import**: het vangnet uit hoofdstuk 11, nu als knop, met rapport.
+- **Full resync**: herrekent alles vanaf nul — het resultaat hoort altijd
+  identiek te zijn aan wat er al stond.
+
+### Zelf een status zetten (manual override)
+
+Tik in de matrix op een cel en kies onderaan: **Mark worked**, **Mark NOT
+worked** of **Exclude**, eventueel met een reden ("papieren log"). Manuele
+statussen winnen áltijd van wat N1MM zegt en zijn herkenbaar aan het
+✎-symbool. **Clear manual status** herstelt de automatische status. Dit
+kan alleen op de lokale versie — de publieke pagina is alleen-lezen.
+
+## 9. Deelnemerslijst importeren
+
+*(het importeren zelf gebeurt via het programma en volgt in fase 12; het
+bestandsformaat ligt nu al vast)*
+
+### Welk bestand heb ik nodig?
+
+Een Excel-bestand (`.xlsx`) of CSV-bestand met **één rij per deelnemend
+station** en een **kopregel** met kolomnamen. De bestaande deelnemerslijst
+(`deelnemerslijst_orig.xlsx`) werkt zonder aanpassingen.
+
+### Kolommen
+
+| Kolomnaam (kop) | Verplicht? | Betekenis |
+|---|---|---|
+| `Call` (of `Callsign`, `Roepnaam`) | **Ja** | De roepnaam, bv. `ON4BAF/P` |
+| `categorie` (of `Category`) | Nee | Deelnamecategorie, bv. `Restricted 12h` |
+| `sectie` (of `Section`) | Nee | UBA-sectie, bv. `RST` |
+| `Opm.` (of `Opmerking`, `Remarks`) | Nee | Vrije opmerking |
+| `Naam` (of `Name`) | Nee | Naam operator/station |
+| `Club` | Nee | Clubnaam |
+| Bandkolommen: `40M`, `80M`, `160M`, … | Nee | Zie hieronder |
+| Andere kolommen (bv. `Nummer`) | — | Worden genegeerd |
+
+Hoofdletters, kleine letters en extra spaties in de kopjes maken niet uit.
+
+### Bandkolommen
+
+Kolommen met een bandnaam als kop (`40M`, `80M`, `160M`, `2m`, `70cm`, …)
+worden gebruikt als **voorstel voor de te volgen banden** van de velddag.
+De *inhoud* van die cellen wordt bewust genegeerd: de matrix start bij een
+nieuwe velddag altijd leeg, ook al stonden er kruisjes in de Excel.
+
+### Wat als er fouten in de lijst staan?
+
+De import stopt nooit op een foute rij. Na afloop krijg je een rapport met
+per probleemrij het rijnummer en de reden, bv.:
+
+- rij zonder roepnaam
+- een waarde die geen roepnaam kan zijn
+- **dubbele stations**: staan `ON4BAF` en `ON4BAF/P` allebei in de lijst,
+  dan wordt de tweede overgeslagen en gemeld (het is hetzelfde station)
+
+### CSV-formaat
+
+Zelfde kolomlogica; enkel de roepnaamkolom is verplicht. Zowel komma's als
+puntkomma's als scheidingsteken worden automatisch herkend (een CSV die je
+uit Belgische Excel exporteert, gebruikt puntkomma's — dat werkt gewoon).
+
+## 10. De matrix gebruiken
+
+De webpagina toont bovenaan de velddagnaam, de periode en een
+**live-indicator**. De pagina ververst zichzelf automatisch (elke paar
+seconden lokaal, elke 30 seconden op de publieke pagina) — je hoeft nooit
+op F5 te duwen. Wordt de indicator rood, dan komt er geen data meer binnen.
+
+Er zijn zes weergaven, via de tabbladen bovenaan:
+
+1. **Matrix** — het hoofdscherm. Rijen = stations, kolommen = banden. De
+   kolomkoppen tonen per band een klein voortgangsbalkje. Kopregel en
+   roepnaamkolom blijven staan bij het scrollen. Tik op een cel voor de
+   details (tijdstip, mode, frequentie, bron-PC).
+2. **Nog te werken** — de platte lijst van alle open station+band-
+   combinaties. Sorteer door op een kolomkop te tikken. Dít is de lijst
+   voor tijdens de nacht.
+3. **Per band** — kies een band, zie de voortgangsbalk en alle stations.
+4. **Per station** — kies een station, zie alle banden en alle QSO's.
+5. **Per bron-PC** — welke computer heeft wat gewerkt, wanneer het laatste
+   pakket binnenkwam, en of de verbinding **LIVE** of **STALE** is.
+6. **Statistiek** — samenvattende cijfers, voortgang in de tijd, en
+   tabellen per band en per categorie.
+
+Bovenaan kan je altijd **filteren**: zoeken op roepnaam, op status (gewerkt
+/ niet gewerkt / gedeeltelijk), band, categorie en sectie.
+
+Manueel gezette statussen zijn herkenbaar aan het **✎-symbool** in de
+celhoek — ook zonder kleuren te zien. De betekenis van elke kleur staat in
+de legende onderaan.
+
+*(cellen aanklikken om zelf een status te zetten — de "manual override" —
+werkt vanaf de volgende fase, enkel op de lokale versie; de publieke pagina
+is altijd alleen-lezen)*
+
+## 11. ADIF-import
+
+De ADIF-import is het **vangnet** voor QSO's die niet live binnenkwamen:
+een PC die offline stond, de tracker die te laat gestart werd, of een
+station dat pas 's avonds zijn log komt afgeven.
+
+*(de knop hiervoor verschijnt in een latere fase; dit werkt eronder:)*
+
+1. Exporteer in N1MM het log als ADIF-bestand (`.adi`).
+2. Importeer dat bestand in de tracker.
+3. Je krijgt een **rapport**: hoeveel records gelezen, hoeveel nieuw,
+   hoeveel duplicaten (al gekend, bv. al live binnengekomen), hoeveel
+   buiten de velddagperiode vielen, en hoeveel van niet-deelnemende
+   stations kwamen (die worden genegeerd).
+
+Je kan hetzelfde bestand gerust twee keer importeren: alles wordt dan als
+duplicaat herkend en er verandert niets. Dubbel tellen kan sowieso niet —
+één QSO of tien QSO's op dezelfde roepnaam en band geeft gewoon "gewerkt".
+
+## 12. Exporteren naar CSV en PDF
+
+*(volgt in fase 15)*
+
+## 13. Publiceren naar GitHub Pages
+
+*(volgt in fase 16)*
+
+## 14. Hoe werkt het technisch?
+
+Voor wie onder de motorkap wil kijken: **`docs/ARCHITECTUUR.md`** bevat de
+visuele architectuur (diagrammen die GitHub automatisch tekent), het
+verloop van één QSO door het systeem, de bestandsindeling op schijf, de
+statusbeslissing per cel, en de volledige lijst van API-endpoints. Kort:
+één Python-proces met een UDP-luisterdraad en een webservertje; alle data
+in gewone JSON-bestanden die atomisch geschreven worden; en één webpagina
+die zowel lokaal als publiek dezelfde `snapshot.json` leest.
+
+## 15. Problemen oplossen
+
+### `python` wordt niet herkend (Windows)
+
+Python staat niet in je PATH. Herinstalleer Python en vink **"Add python.exe
+to PATH"** aan, of gebruik `py -m app.main` in plaats van
+`python -m app.main`.
+
+### `No module named app`
+
+Je staat niet in de juiste map. Doe eerst `cd` naar de map
+`n1mm_fieldday_tracker` (de map waarin `app\` en `README.md` staan) en
+probeer opnieuw.
+
+### `(.venv)` staat niet vooraan mijn prompt
+
+De virtuele omgeving is niet actief. Voer eerst
+`.venv\Scripts\activate` (Windows) of `source .venv/bin/activate` (Linux)
+uit.
+
+### N1MM-QSO's komen niet binnen
+
+Overloop in deze volgorde:
+
+1. **Checkbox**: staat *Contacts* aangevinkt in Broadcast Data? (hfdst. 7)
+2. **Adres**: staat er exact `127.0.0.1:12060`? (bij een aparte N1MM-PC:
+   het IP van de trackerlaptop, en in de tracker-settings host `0.0.0.0`)
+3. **Firewall**: laat Windows Firewall inkomend UDP-verkeer op poort 12060
+   toe voor de tracker? Bij de eerste start vraagt Windows dit meestal —
+   klik dan op *Toegang toestaan*.
+4. **Poortconflict**: gebruikt een andere N1MM-plugin of programma al poort
+   12060? De tracker meldt dit bij het opstarten ("cannot bind").
+5. **Diagnose per bron-PC**: de tracker toont per PC het laatste
+   ontvangstmoment — zo zie je meteen wélke computer niet doorstuurt.
+6. **Test**: log een test-QSO in N1MM en verwijder het meteen weer; er
+   moeten dan pakketten binnenkomen.
+
+*(dit hoofdstuk groeit verder mee met elke fase)*
+
+---
+
+*Handleiding bijgewerkt bij: fase 12 (nieuw: hoofdstuk 8 — velddagbeheer,
+imports en manual overrides via het Manage-paneel; hoofdstuk 14 verwijst
+naar de architectuurdocumentatie).*
