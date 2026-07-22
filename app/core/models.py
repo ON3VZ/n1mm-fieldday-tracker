@@ -461,7 +461,7 @@ class PublishSettings:
 
 @dataclass
 class AppSettings:
-    ui_language: str = "en"  # BR-12: UI starts in English
+    ui_language: str = "nl"  # default UI language: Dutch (Flemish)
     n1mm_udp_host: str = DEFAULT_UDP_HOST
     n1mm_udp_port: int = DEFAULT_UDP_PORT
     freshness_threshold_seconds: int = DEFAULT_FRESHNESS_THRESHOLD_SECONDS
@@ -476,8 +476,8 @@ class AppSettings:
     publish: PublishSettings = field(default_factory=PublishSettings)
 
     def validate(self) -> None:
-        if self.ui_language not in ("en", "nl", "fr", "es"):
-            raise ValueError("AppSettings.ui_language must be one of: en, nl, fr, es")
+        if self.ui_language not in ("nl", "en", "fr"):
+            raise ValueError("AppSettings.ui_language must be one of: nl, en, fr")
         if not (1 <= int(self.n1mm_udp_port) <= 65535):
             raise ValueError("AppSettings.n1mm_udp_port must be 1..65535")
         if int(self.freshness_threshold_seconds) <= 0:
@@ -505,7 +505,7 @@ class AppSettings:
     def from_dict(cls, data: dict[str, Any] | None) -> "AppSettings":
         data = data or {}
         return cls(
-            ui_language=str(data.get("ui_language", "en")),
+            ui_language=str(data.get("ui_language", "nl")),
             n1mm_udp_host=str(data.get("n1mm_udp_host", DEFAULT_UDP_HOST)),
             n1mm_udp_port=int(data.get("n1mm_udp_port", DEFAULT_UDP_PORT)),
             freshness_threshold_seconds=int(

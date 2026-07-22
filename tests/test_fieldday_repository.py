@@ -196,7 +196,7 @@ class TestListFielddays:
 class TestAppSettingsStorage:
     def test_missing_file_gives_defaults(self, tmp_path):
         settings = load_app_settings(path=tmp_path / "app_settings.json")
-        assert settings.ui_language == "en"
+        assert settings.ui_language == "nl"
         assert settings.n1mm_udp_port == 12060
 
     def test_roundtrip(self, tmp_path):
@@ -210,11 +210,11 @@ class TestAppSettingsStorage:
         path = tmp_path / "app_settings.json"
         path.write_text("{{{", encoding="utf-8")
         settings = load_app_settings(path=path)
-        assert settings.ui_language == "en"
+        assert settings.ui_language == "nl"
         assert list(tmp_path.glob("app_settings.json.corrupt.*"))
 
     def test_semantically_invalid_gives_defaults(self, tmp_path):
         path = tmp_path / "app_settings.json"
         path.write_text('{"ui_language": "klingon"}', encoding="utf-8")
         settings = load_app_settings(path=path)
-        assert settings.ui_language == "en"
+        assert settings.ui_language == "nl"

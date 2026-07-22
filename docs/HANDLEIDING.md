@@ -404,8 +404,9 @@ alles weer actief, inclusief de UDP-ontvangst.
 
 Open **Manage** en scrol naar **Settings**:
 
-- **Taal** — Engels/Nederlands/Frans/Spaans (de vertalingen zelf volgen in
-  een latere update; tot dan blijft de tekst Engels).
+- **Taal** — Nederlands (standaard), Engels of Frans. De keuze werkt meteen
+  door in de hele applicatie én op de publieke pagina, zodat bijvoorbeeld
+  een Franstalige bezoeker de live-pagina in het Frans ziet.
 - **UDP listen address** — `127.0.0.1` (veilig: enkel deze laptop) of
   `0.0.0.0` (ook andere N1MM-PC's op het netwerk mogen sturen). Poort
   standaard `12060`. Na opslaan herstart de ontvanger vanzelf op het
@@ -590,6 +591,5 @@ Overloop in deze volgorde:
 
 ---
 
-*Handleiding bijgewerkt bij: blok C (publieke pagina toont automatisch
-live / aankomend / geen actieve / verlopen; na 1 week geen resultaten meer;
-station verwijderen met bevestiging).*
+*Handleiding bijgewerkt bij: fase 17 (drietalige interface: Nederlands
+standaard, Engels en Frans; taalkeuze werkt door tot op de publieke pagina).*

@@ -20,32 +20,32 @@
     </div>
   </div>
   <div class="topbar-actions">
-    <button id="manual-open" class="manage-btn secondary-btn" data-i18n="manual.open">Manual</button>
-    <button id="manage-open" class="manage-btn" data-i18n="manage.open">Manage</button>
+    <button id="manual-open" class="manage-btn secondary-btn" data-i18n="manual.open">Handleiding</button>
+    <button id="manage-open" class="manage-btn" data-i18n="manage.open">Beheer</button>
   </div>
   <div class="livebar" id="livebar">
     <span class="livedot" id="livedot" aria-hidden="true"></span>
-    <span id="live-text" data-i18n="live.loading">Loading…</span>
+    <span id="live-text" data-i18n="live.loading">Laden…</span>
   </div>
 </header>
 
 <nav class="tabs" id="tabs" role="tablist">
   <button class="tab" data-view="matrix" data-i18n="view.matrix">Matrix</button>
-  <button class="tab" data-view="towork" data-i18n="view.towork">Still to work</button>
+  <button class="tab" data-view="towork" data-i18n="view.towork">Nog te werken</button>
   <button class="tab" data-view="band" data-i18n="view.band">Per band</button>
   <button class="tab" data-view="station" data-i18n="view.station">Per station</button>
-  <button class="tab" data-view="sources" data-i18n="view.sources">Per source PC</button>
-  <button class="tab" data-view="stats" data-i18n="view.stats">Statistics</button>
+  <button class="tab" data-view="sources" data-i18n="view.sources">Per bron-PC</button>
+  <button class="tab" data-view="stats" data-i18n="view.stats">Statistiek</button>
 </nav>
 
 <section class="filters" id="filters">
   <input type="search" id="f-search" class="f-search mono"
-         data-i18n-placeholder="filter.search" placeholder="Search callsign…">
+         data-i18n-placeholder="filter.search" placeholder="Zoek roepnaam…">
   <select id="f-status">
-    <option value="all" data-i18n="filter.status.all">All statuses</option>
-    <option value="worked" data-i18n="filter.status.worked">Worked</option>
-    <option value="open" data-i18n="filter.status.open">Not worked</option>
-    <option value="partial" data-i18n="filter.status.partial">Partially worked</option>
+    <option value="all" data-i18n="filter.status.all">Alle statussen</option>
+    <option value="worked" data-i18n="filter.status.worked">Gewerkt</option>
+    <option value="open" data-i18n="filter.status.open">Niet gewerkt</option>
+    <option value="partial" data-i18n="filter.status.partial">Deels gewerkt</option>
   </select>
   <select id="f-band"></select>
   <select id="f-category"></select>
@@ -53,7 +53,7 @@
 </section>
 
 <main id="view-root">
-  <div class="empty" data-i18n="live.loading">Loading…</div>
+  <div class="empty" data-i18n="live.loading">Laden…</div>
 </main>
 
 <aside class="detail" id="detail" hidden>
@@ -67,7 +67,7 @@
 <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
 <aside class="drawer" id="manual-drawer" hidden aria-label="Manual">
   <div class="drawer-head">
-    <strong data-i18n="manual.title">Quick manual</strong>
+    <strong data-i18n="manual.title">Beknopte handleiding</strong>
     <button id="manual-close" class="detail-close" aria-label="Close">×</button>
   </div>
   <div id="manual-body" class="manual-body"></div>
@@ -75,7 +75,7 @@
 
 <aside class="drawer" id="manage-drawer" hidden aria-label="Field day management">
   <div class="drawer-head">
-    <strong data-i18n="manage.title">Field day management</strong>
+    <strong data-i18n="manage.title">Velddagbeheer</strong>
     <button id="manage-close" class="detail-close" aria-label="Close">×</button>
   </div>
   <div id="manage-body"></div>

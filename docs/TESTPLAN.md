@@ -421,7 +421,26 @@ en geen data in het snapshot-bestand.
 ✅ *Verwacht:* nette melding dat er geen verbinding is; geen herhaalstorm;
 de tracker blijft lokaal werken.
 
-## Deel N — *(gepland, per komende fase)*
+## Deel N — Taalkeuze (fase 17)
+
+**N1. Standaardtaal** — start de app met een verse installatie.
+✅ *Verwacht:* de interface staat in het **Nederlands** (knoppen "Beheer",
+"Handleiding", tabblad "Nog te werken", enz.).
+
+**N2. Wisselen naar Frans** — Beheer → Instellingen → Taal → Français →
+opslaan.
+✅ *Verwacht:* na herladen staat alles in het Frans ("Gérer", "À
+travailler", "Statistiques"); de keuze wordt onthouden.
+
+**N3. Wisselen naar Engels** — idem met English.
+✅ *Verwacht:* alles in het Engels.
+
+**N4. Publieke pagina volgt de taal** — zet de taal op Frans en publiceer;
+open de publieke pagina.
+✅ *Verwacht:* de publieke (alleen-lezen) pagina is ook Franstalig,
+inclusief de statusschermen ("aucune journée active", "terminée", …).
+
+## Deel O — *(gepland, per komende fase)*
 
 - **Fase 17**: taalwissel en/nl/fr/es in de webview
 - **Fase 18**: .exe-build (start zonder Python; Defender-melding wegklikken)
@@ -430,4 +449,4 @@ de tracker blijft lokaal werken.
 
 ---
 
-*Testplan bijgewerkt bij: blok C.*
+*Testplan bijgewerkt bij: fase 17.*

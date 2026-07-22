@@ -273,7 +273,7 @@ class TestOverride:
 class TestAppSettings:
     def test_defaults(self):
         s = AppSettings()
-        assert s.ui_language == "en"  # BR-12
+        assert s.ui_language == "nl"  # default: Dutch
         assert s.n1mm_udp_host == "127.0.0.1"
         assert s.n1mm_udp_port == 12060
         assert s.publish.enabled is False
