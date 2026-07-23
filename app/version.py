@@ -7,7 +7,7 @@ the repository whose GitHub Releases are checked by the in-app updater.
 
 from __future__ import annotations
 
-APP_VERSION = "1.0.1"
+APP_VERSION = "1.1.0"
 
 # Repository that publishes the installer as GitHub Releases (owner/name).
 # The updater reads https://api.github.com/repos/<repo>/releases/latest and
