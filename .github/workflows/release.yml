@@ -10,6 +10,11 @@ on:
   push:
     tags:
       - "v*"
+  # Ook starten wanneer je een Release publiceert via de website — ook als
+  # de tag al bestond (dan is er geen tag-push en zou de trigger hierboven
+  # niet afgaan).
+  release:
+    types: [published]
   workflow_dispatch:
 
 permissions:
