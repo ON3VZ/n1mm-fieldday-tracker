@@ -83,7 +83,7 @@ def send_udp(port, payload: str):
         sock.sendto(payload.encode("utf-8"), ("127.0.0.1", port))
 
 
-def wait_until(predicate, timeout=3.0):
+def wait_until(predicate, timeout=10.0):
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         if predicate():
@@ -621,7 +621,9 @@ class TestRemoveStation:
         from datetime import datetime, timezone
         now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
         send_udp(udp_port, contactinfo(timestamp=now))  # QSO voor ON4BAF/P
-        assert wait_until(lambda: state.listener.stats.processed == 1)
+        # Wacht tot het QSO ECHT op schijf staat: de teller loopt een fractie
+        # vóór de schrijfactie, wat onder belasting (CI) een race gaf.
+        assert wait_until(lambda: len(repo.load_qsos()) == 1)
         http_post(http_port, "/api/station/remove", {"normalized_callsign": "ON4BAF"})
         # QSO blijft bewaard op schijf (niet vernietigd)
         assert len(repo.load_qsos()) == 1
