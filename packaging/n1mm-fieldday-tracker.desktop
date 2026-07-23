@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=N1MM Field Day Tracker
+GenericName=Velddag QSO-matrix
+Comment=Live matrix van gewerkte stations per band, naast N1MM Logger+
+Exec=@EXEC@
+Terminal=true
+Categories=HamRadio;Network;Utility;
+Keywords=amateur radio;hamradio;n1mm;velddag;field day;contest;
+StartupNotify=false
