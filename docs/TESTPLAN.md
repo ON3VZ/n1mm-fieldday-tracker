@@ -440,7 +440,91 @@ open de publieke pagina.
 ✅ *Verwacht:* de publieke (alleen-lezen) pagina is ook Franstalig,
 inclusief de statusschermen ("aucune journée active", "terminée", …).
 
-## Deel O — *(gepland, per komende fase)*
+## Deel O — Levenscyclus en installer (fase 18)
+
+**O1. Versie zichtbaar** — Beheer → Applicatie.
+✅ *Verwacht:* het versienummer staat er (bv. 1.0.0).
+
+**O2. Ontvangst herstarten** — klik *Ontvangst herstarten* terwijl N1MM
+draait; log daarna een test-QSO.
+✅ *Verwacht:* melding "Ontvangst herstart"; het nieuwe QSO komt gewoon
+binnen. Bij *Per bron-PC* staat de PC weer op LIVE.
+
+**O3. Automatisch herstel na slaapstand** — zet de laptop in slaapstand
+terwijl de tracker draait, wek hem en log een QSO in N1MM.
+✅ *Verwacht:* binnen ±10 seconden werkt de ontvangst weer zonder dat je
+iets doet (de bewaker herstart de luisteraar automatisch).
+
+**O4. Afsluiten** — Beheer → Applicatie → *Applicatie afsluiten* →
+bevestigen.
+✅ *Verwacht:* melding dat je het tabblad mag sluiten; het zwarte
+servervenster stopt vanzelf.
+
+**O5. Controleren op updates (online)** — klik *Controleer op updates*.
+✅ *Verwacht:* ofwel "Je hebt de nieuwste versie", ofwel de nieuwe versie
+met een installatieknop.
+
+**O6. Controleren op updates (offline)** — trek de internetverbinding uit en
+klik opnieuw.
+✅ *Verwacht:* nette melding dat GitHub niet bereikbaar is; geen crash.
+
+**O7. Installer — standaardwaarden** — draai de setup op een propere pc.
+✅ *Verwacht:* de pagina "Standaardinstellingen" verschijnt met
+127.0.0.1 / 12060 / nl; na installatie start de app met die waarden.
+
+**O8. Installer — snelkoppelingen en firewall** — na installatie.
+✅ *Verwacht:* snelkoppeling op bureaublad en in startmenu; Windows vraagt
+géén firewall-toestemming meer bij de eerste start (de regel staat er al).
+
+**O9. Installer — N1MM-herinnering** — op het eindscherm van de setup.
+✅ *Verwacht:* een venster met de exacte N1MM-instructie (Config →
+Broadcast Data → Contacts → adres:poort → FDREG1).
+
+**O10. Herinstallatie behoudt gegevens** — installeer een tweede keer over
+de bestaande installatie.
+✅ *Verwacht:* je velddagen, QSO's en instellingen staan er nog; jouw eigen
+instellingen worden niet overschreven door de standaardwaarden.
+
+**O11. Verwijderen** — Instellingen → Apps → Verwijderen.
+✅ *Verwacht:* de vraag of de velddaggegevens ook weg mogen (standaard
+nee); kies je nee, dan staan ze er na een herinstallatie weer.
+
+## Deel P — Downloadpagina en geautomatiseerd releasebeheer (fase 19)
+
+**P1. Pagina bereikbaar** — open
+<https://on3vz.github.io/n1mm-fieldday-tracker/>.
+✅ *Verwacht:* de pagina laadt in WLD-huisstijl met menu bovenaan.
+
+**P2. Laatste versie zichtbaar** — kijk bovenaan bij Download.
+✅ *Verwacht:* het versienummer van je laatste Release staat er, met de
+datum.
+
+**P3. Downloadknoppen werken** — klik *Download installer* en *Download
+pakket*.
+✅ *Verwacht:* beide starten de download van respectievelijk het `.exe`- en
+het `.tar.gz`-bestand van de laatste Release.
+
+**P4. Versiegeschiedenis** — scrol naar Versies.
+✅ *Verwacht:* je releases staan er met tag, datum en release notes.
+
+**P5. Pagina blijft bruikbaar zonder API** — open de pagina opnieuw na veel
+herladen (of met de netwerkinspectie de API geblokkeerd).
+✅ *Verwacht:* nette melding en werkende links naar de GitHub-releasepagina;
+geen kapotte pagina.
+
+**P6. Automatische bouw** — verhoog `APP_VERSION`, push tag `vX.Y.Z`.
+✅ *Verwacht:* in het tabblad *Actions* start de workflow **Release**; na
+±10 minuten staat er een nieuwe Release met een `.exe` én een `.tar.gz`.
+
+**P7. Updateknop ziet de nieuwe versie** — open in een oudere installatie
+Beheer → Applicatie → *Controleer op updates*.
+✅ *Verwacht:* de nieuwe versie wordt gemeld met een installatieknop.
+
+**P8. Linux-installatie** — pak het `.tar.gz` uit en draai `./install.sh`.
+✅ *Verwacht:* menu-item aangemaakt; `n1mm-fieldday-tracker` start de app;
+`./install.sh --uninstall` verwijdert ze weer.
+
+## Deel Q — *(gepland, per komende fase)*
 
 - **Fase 17**: taalwissel en/nl/fr/es in de webview
 - **Fase 18**: .exe-build (start zonder Python; Defender-melding wegklikken)
@@ -449,4 +533,4 @@ inclusief de statusschermen ("aucune journée active", "terminée", …).
 
 ---
 
-*Testplan bijgewerkt bij: fase 17.*
+*Testplan bijgewerkt bij: fase 19.*

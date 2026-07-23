@@ -550,6 +550,101 @@ staat een blauw **(?)** met deze uitleg.
 
 Test dit gerust zelf vooraf: testplan **A6**.
 
+## 15b. Installeren als programma — voor gewone gebruikers
+
+> **Alles staat op één pagina:**
+> <https://on3vz.github.io/n1mm-fieldday-tracker/> — daar download je altijd
+> de laatste versie (Windows en Linux) en staat dezelfde uitleg als hier,
+> plus de versiegeschiedenis.
+
+Vanaf deze versie is er een **installer**: één bestand
+(`N1MMFieldDayTracker-Setup-x.y.z.exe`) dat je clubleden dubbelklikken.
+Er is **geen Python, geen venv en geen enkel commando** nodig — de
+Python-runtime zit mee in het programma.
+
+### Installeren
+
+1. Dubbelklik de setup. Windows vraagt om **beheerrechten** — klik Ja.
+   (Dat is nodig voor de installatiemap en de firewall-regel.)
+2. De installer vraagt onderweg om de **standaardinstellingen**:
+   UDP-luisteradres (`127.0.0.1`), UDP-poort (`12060`) en de taal (`nl`).
+   Aanvaard ze gewoon als N1MM op dezelfde laptop draait.
+3. De installer zet een **snelkoppeling op het bureaublad** en in het
+   startmenu, en voegt automatisch de **Windows Firewall-regel** toe zodat
+   de N1MM-pakketten binnenkomen.
+4. Op het einde verschijnt een herinnering met de **N1MM-instructie**
+   (Config → Broadcast Data → Contacts → adres:poort). Niet vergeten!
+
+> De ingevulde standaardwaarden worden enkel weggeschreven als er nog geen
+> instellingen bestaan. Herinstalleer je later, dan blijven jouw eigen
+> instellingen dus gewoon staan.
+
+### Starten en afsluiten
+
+Dubbelklik de snelkoppeling. Er opent een klein zwart venster (de server) en
+je browser gaat vanzelf naar de tracker. **Afsluiten** doe je met
+**Beheer → Applicatie → Applicatie afsluiten**, of door het zwarte venster te
+sluiten. De server stopt dan netjes mee.
+
+### Ontvangst na slaapstand
+
+Ging de laptop in slaapstand, dan kan de UDP-ontvangst stilvallen. De app
+**herstelt dat nu automatisch**: een bewaker controleert elke tien seconden of
+de ontvanger nog leeft en herstart hem indien nodig. Merk je toch iets, dan is
+er de knop **Beheer → Applicatie → Ontvangst herstarten** (met (?)-uitleg),
+die de luisteraar opnieuw opent zonder de app te herstarten.
+
+### Updaten
+
+Ga naar **Beheer → Applicatie**. Daar staat je huidige **versienummer** en de
+knop **Controleer op updates**. Is er een nieuwe versie, dan zie je welke, en
+met **Nu downloaden en installeren** haalt de app de nieuwe setup op en start
+die. Bevestig de Windows-melding en de nieuwe versie wordt over de oude
+geïnstalleerd.
+
+> **Je velddaggegevens blijven altijd staan.** Die staan in
+> `%LOCALAPPDATA%\N1MM Field Day Tracker\`, buiten de programmamap — een
+> update of herinstallatie raakt ze niet.
+
+Geen internet? Dan meldt de controle netjes dat GitHub niet bereikbaar was;
+er gebeurt verder niets.
+
+### Verwijderen (uninstall)
+
+Via **Instellingen → Apps → N1MM Field Day Tracker → Verwijderen**. De
+verwijderaar haalt ook de firewall-regel weg en **vraagt** of je de
+velddaggegevens wil wissen — standaard **nee**, zodat je niet per ongeluk je
+logs kwijtraakt.
+
+### Linux
+
+Download het `.tar.gz`-pakket van de downloadpagina en draai:
+
+```
+tar xzf N1MMFieldDayTracker-*-linux-x86_64.tar.gz
+cd N1MMFieldDayTracker-*-linux-x86_64
+./install.sh
+```
+
+Geen root nodig — alles komt in je eigen home-map. Daarna staat het programma
+in je menu, of start je het met `n1mm-fieldday-tracker`. Verwijderen kan met
+`./install.sh --uninstall`; je velddaggegevens blijven dan staan.
+
+Draait N1MM op een andere pc en gebruik je `ufw`? Sta de poort toe met
+`sudo ufw allow 12060/udp`.
+
+### Zelf de installer bouwen (voor de beheerder)
+
+Dat gebeurt **automatisch**. Verhoog het versienummer in `app\version.py`,
+push een tag `vX.Y.Z`, en GitHub bouwt zelf de Windows-installer én het
+Linux-pakket en publiceert de Release. De downloadpagina en de updateknop in
+de app pikken dat vanzelf op. Het volledige stappenplan staat in
+`RELEASE.md`.
+
+Moet het toch lokaal (bv. GitHub ligt plat), dan kan je op een Windows-pc
+`packaging\build.bat` dubbelklikken; dat vereist eenmalig Python en
+Inno Setup 6 — zie `packaging\README-BUILD.md`.
+
 ## 16. Problemen oplossen
 
 ### `python` wordt niet herkend (Windows)
@@ -591,5 +686,5 @@ Overloop in deze volgorde:
 
 ---
 
-*Handleiding bijgewerkt bij: fase 17 (drietalige interface: Nederlands
-standaard, Engels en Frans; taalkeuze werkt door tot op de publieke pagina).*
+*Handleiding bijgewerkt bij: fase 19 (downloadpagina met handleiding,
+Linux-installatie, en geautomatiseerd releasebeheer via GitHub Actions).*

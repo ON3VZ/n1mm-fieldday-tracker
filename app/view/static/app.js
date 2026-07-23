@@ -199,6 +199,20 @@ const STRINGS = {
     "pub.pagesurl": "Public page:",
     "pub.tokenset": "token configured",
     "pub.notoken": "no token yet",
+    "app.title": "Application",
+    "app.version": "Version:",
+    "app.restartrx": "Restart reception",
+    "app.checkupdate": "Check for updates",
+    "app.quit": "Quit application",
+    "app.restarted": "Reception restarted.",
+    "app.quitconfirm": "Close the tracker? The window will stop and reception ends until you start it again.",
+    "app.quitting": "Closing… you can close this browser tab.",
+    "app.uptodate": "You have the latest version ({v}).",
+    "app.updatefound": "Update available: {latest} (you have {current}).",
+    "app.updatebtn": "Download and install now",
+    "app.updatestarting": "Downloading the installer… the setup will open shortly. Approve the Windows prompt to install.",
+    "app.updateerror": "Update check failed: {e}",
+    "help.restartrx": "Use this if reception stopped after the laptop woke from sleep. It rebinds the UDP listener without restarting the whole app. (This normally happens automatically.)",
   },
   nl: {
     "live.loading": "Laden…",
@@ -384,6 +398,20 @@ const STRINGS = {
     "pub.pagesurl": "Publieke pagina:",
     "pub.tokenset": "token ingesteld",
     "pub.notoken": "nog geen token",
+    "app.title": "Applicatie",
+    "app.version": "Versie:",
+    "app.restartrx": "Ontvangst herstarten",
+    "app.checkupdate": "Controleer op updates",
+    "app.quit": "Applicatie afsluiten",
+    "app.restarted": "Ontvangst herstart.",
+    "app.quitconfirm": "De tracker sluiten? Het venster stopt en de ontvangst eindigt tot je opnieuw start.",
+    "app.quitting": "Afsluiten… je kan dit browsertabblad sluiten.",
+    "app.uptodate": "Je hebt de nieuwste versie ({v}).",
+    "app.updatefound": "Update beschikbaar: {latest} (je hebt {current}).",
+    "app.updatebtn": "Nu downloaden en installeren",
+    "app.updatestarting": "De installer wordt gedownload… de setup opent zo meteen. Bevestig de Windows-melding om te installeren.",
+    "app.updateerror": "Controle op updates mislukt: {e}",
+    "help.restartrx": "Gebruik dit als de ontvangst stilviel nadat de laptop uit slaapstand kwam. Het herbindt de UDP-luisteraar zonder de hele app te herstarten. (Dit gebeurt normaal vanzelf.)",
   },
   fr: {
     "live.loading": "Chargement…",
@@ -569,6 +597,20 @@ const STRINGS = {
     "pub.pagesurl": "Page publique :",
     "pub.tokenset": "token configuré",
     "pub.notoken": "pas encore de token",
+    "app.title": "Application",
+    "app.version": "Version :",
+    "app.restartrx": "Redémarrer la réception",
+    "app.checkupdate": "Vérifier les mises à jour",
+    "app.quit": "Quitter l'application",
+    "app.restarted": "Réception redémarrée.",
+    "app.quitconfirm": "Fermer le tracker ? La fenêtre s'arrête et la réception cesse jusqu'au prochain démarrage.",
+    "app.quitting": "Fermeture… vous pouvez fermer cet onglet.",
+    "app.uptodate": "Vous avez la dernière version ({v}).",
+    "app.updatefound": "Mise à jour disponible : {latest} (vous avez {current}).",
+    "app.updatebtn": "Télécharger et installer maintenant",
+    "app.updatestarting": "Téléchargement de l'installateur… la configuration va s'ouvrir. Approuvez l'invite Windows pour installer.",
+    "app.updateerror": "Échec de la vérification des mises à jour : {e}",
+    "help.restartrx": "À utiliser si la réception s'est arrêtée après la sortie de veille du portable. Cela relie à nouveau l'écouteur UDP sans redémarrer toute l'application. (Cela se fait normalement automatiquement.)",
   },
 };
 
@@ -1508,6 +1550,7 @@ function showToast(kind, text) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { toast.hidden = true; }, 8000);
 }
+let manageApp = { version: "" };
 let managePublish = { enabled: false, repo: "", branch: "main", path: "",
                       interval: "0", includePrivate: false,
                       tokenConfigured: false, pagesUrl: "" };
@@ -1532,6 +1575,10 @@ async function loadManageSettings() {
     managePublish.tokenConfigured = pub.token_configured;
     managePublish.pagesUrl = pub.pages_url;
   } catch (err) { /* defaults */ }
+  try {
+    const v = await (await fetch("/api/version")).json();
+    manageApp.version = v.version || "";
+  } catch (err) { /* laat leeg */ }
   const tech = state.snapshot ? state.snapshot.tech : null;
   if (tech) {
     manageSettings.udpHost = tech.n1mm_udp_host;
@@ -1725,6 +1772,18 @@ async function renderManage() {
     '<div class="row-btns"><button class="btn secondary" id="sync-now">' +
     esc(t("manage.syncbtn")) + "</button></div>";
 
+  html += "<h3>" + esc(t("app.title")) + "</h3>" +
+    '<p class="app-version">' + esc(t("app.version")) + " " +
+    esc(manageApp.version || "…") + "</p>" +
+    '<div class="row-btns">' +
+    '<button class="btn secondary" id="listener-restart">' +
+    esc(t("app.restartrx")) + "</button> " + help("help.restartrx") +
+    '<button class="btn secondary" id="update-check">' +
+    esc(t("app.checkupdate")) + "</button>" +
+    '<button class="btn danger" id="app-quit">' + esc(t("app.quit")) + "</button>" +
+    "</div>" +
+    '<div id="update-status"></div>';
+
   body.innerHTML = accordionize(html);
 }
 
@@ -1904,6 +1963,50 @@ document.addEventListener("click", async (event) => {
       if (!result.ok) throw new Error((result.errors || [result.error]).join("; "));
       return result;
     }, (r) => t("pub.result", { up: r.uploaded.length, skip: r.skipped.length }));
+    return;
+  }
+  if (target.id === "listener-restart") {
+    manageAction(() => api("/api/listener/restart", {}), () => t("app.restarted"));
+    return;
+  }
+  if (target.id === "app-quit") {
+    if (window.confirm(t("app.quitconfirm"))) {
+      api("/api/app/quit", {}).catch(() => {});
+      const root = $("view-root");
+      if (root) root.innerHTML = '<div class="pub-notice"><div class="pub-logo">WLD</div><p>' +
+        esc(t("app.quitting")) + "</p></div>";
+      showToast("ok", t("app.quitting"));
+    }
+    return;
+  }
+  if (target.id === "update-check") {
+    const box = $("update-status");
+    if (box) box.innerHTML = "…";
+    (async () => {
+      try {
+        const r = await (await fetch("/api/update/check")).json();
+        if (r.error) { box.innerHTML = '<div class="msg warn">' +
+          esc(t("app.updateerror", { e: r.error })) + "</div>"; return; }
+        if (r.update_available) {
+          box.innerHTML = '<div class="msg ok">' +
+            esc(t("app.updatefound", { latest: r.latest, current: r.current })) +
+            '</div><div class="row-btns"><button class="btn" id="update-apply" data-url="' +
+            esc(r.installer_url) + '">' + esc(t("app.updatebtn")) + "</button></div>";
+        } else {
+          box.innerHTML = '<div class="msg ok">' +
+            esc(t("app.uptodate", { v: r.current })) + "</div>";
+        }
+      } catch (err) {
+        box.innerHTML = '<div class="msg warn">' +
+          esc(t("app.updateerror", { e: err.message })) + "</div>";
+      }
+    })();
+    return;
+  }
+  if (target.id === "update-apply") {
+    const url = target.dataset.url;
+    showToast("ok", t("app.updatestarting"));
+    api("/api/update/apply", { installer_url: url }).catch(() => {});
     return;
   }
   if (target.id === "sync-now") {

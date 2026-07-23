@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>N1MM Field Day Tracker — download &amp; handleiding | WLD</title>
+<meta name="description" content="Download de N1MM Field Day Tracker: live matrix van gewerkte stations per band tijdens de velddag, naast N1MM Logger+. Met installatie- en gebruikershandleiding.">
+<style>
+:root{
+  --ink:#1A2332; --ink-soft:#6B7A99; --paper:#fff; --paper-soft:#F0F4F8;
+  --chrome:#050D1A; --teal:#00B4CC; --teal-dim:rgba(0,180,204,.12);
+  --line:#DEE2E6; --line-soft:#e8edf2; --ok:#22C55E; --warn:#FF6B35;
+  --mono:'JetBrains Mono',ui-monospace,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Inter',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
+  color:var(--ink);background:var(--paper-soft);line-height:1.6}
+a{color:#0089a3}
+header{background:var(--chrome);color:#fff;padding:2.5rem 1.25rem 2rem}
+.wrap{max-width:60rem;margin:0 auto}
+.logo{font-family:'Arial Black',Impact,sans-serif;font-weight:900;font-size:2.6rem;
+  letter-spacing:-2px;border-bottom:4px solid var(--teal);display:inline-block;
+  padding-bottom:.2rem;line-height:1}
+header h1{font-size:2rem;margin:1.2rem 0 .3rem}
+header p{color:#b9c6d8;margin:0;max-width:44rem}
+nav{background:var(--chrome);border-top:1px solid rgba(255,255,255,.1);
+  position:sticky;top:0;z-index:10;padding:.5rem 1.25rem}
+nav .wrap{display:flex;gap:.35rem;flex-wrap:wrap}
+nav a{color:#b9c6d8;text-decoration:none;padding:.4rem .7rem;border-radius:6px;font-size:.92rem}
+nav a:hover{background:rgba(255,255,255,.1);color:#fff}
+main{padding:0 1.25rem 4rem}
+section{background:var(--paper);border:1px solid var(--line-soft);border-radius:14px;
+  padding:1.6rem 1.8rem;margin:1.5rem auto;max-width:60rem}
+h2{color:var(--chrome);font-size:1.45rem;margin:0 0 .8rem;
+  border-bottom:2px solid var(--teal);padding-bottom:.35rem}
+h3{color:var(--chrome);font-size:1.1rem;margin:1.4rem 0 .4rem}
+code,.mono{font-family:var(--mono);background:var(--paper-soft);padding:.1em .35em;
+  border-radius:4px;font-size:.9em}
+pre{background:var(--chrome);color:#e8f6f9;padding:.9rem 1.1rem;border-radius:8px;
+  border-left:4px solid var(--teal);overflow-x:auto;font-family:var(--mono);font-size:.86rem}
+pre code{background:none;padding:0;color:inherit}
+.btn{display:inline-block;background:var(--teal);color:#00222a;text-decoration:none;
+  font-weight:700;padding:.75rem 1.3rem;border-radius:9px;border:none;font-size:1rem}
+.btn:hover{filter:brightness(1.08)}
+.btn.alt{background:var(--paper-soft);color:var(--ink);border:1px solid var(--line)}
+.dl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:1rem;margin:1rem 0}
+.dl-card{border:1px solid var(--line);border-radius:12px;padding:1.1rem;background:var(--paper)}
+.dl-card h3{margin:0 0 .3rem}
+.dl-card .meta{color:var(--ink-soft);font-size:.85rem;margin:.4rem 0 .8rem}
+.badge{display:inline-block;background:var(--teal-dim);color:#00697a;border:1px solid var(--teal);
+  border-radius:999px;padding:.15rem .7rem;font-size:.82rem;font-weight:600;font-family:var(--mono)}
+.note{background:var(--teal-dim);border:1px solid var(--teal);border-radius:9px;padding:.85rem 1.1rem;margin:.9rem 0}
+.warn{background:rgba(255,107,53,.1);border:1px solid var(--warn);border-radius:9px;padding:.85rem 1.1rem;margin:.9rem 0}
+ol,ul{padding-left:1.3rem}
+li{margin:.3rem 0}
+table{border-collapse:collapse;width:100%;margin:.8rem 0;font-size:.94rem}
+th{background:var(--chrome);color:#fff;text-align:left;padding:.5rem .7rem}
+td{border:1px solid var(--line);padding:.45rem .7rem;vertical-align:top}
+.rel{border-left:3px solid var(--teal);padding:.2rem 0 .2rem 1rem;margin:1rem 0}
+.rel h4{margin:0;font-family:var(--mono);font-size:1rem}
+.rel .date{color:var(--ink-soft);font-size:.85rem}
+.rel .body{white-space:pre-wrap;font-size:.92rem;color:#3a465c;margin-top:.4rem}
+footer{background:var(--chrome);color:#8fa0b8;padding:2rem 1.25rem;font-size:.9rem}
+footer a{color:var(--teal)}
+.loading{color:var(--ink-soft);font-style:italic}
+@media(max-width:700px){.logo{font-size:2rem}header h1{font-size:1.5rem}section{padding:1.2rem}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="logo">WLD</div>
+    <h1>N1MM Field Day Tracker</h1>
+    <p>Zie tijdens de velddag live welke stations op welke band al gewerkt zijn.
+       Draait naast N1MM Logger+ — N1MM blijft je officiële logger.</p>
+  </div>
+</header>
+
+<nav><div class="wrap">
+  <a href="#download">Download</a>
+  <a href="#installeren">Installeren</a>
+  <a href="#n1mm">N1MM instellen</a>
+  <a href="#gebruik">Gebruiken</a>
+  <a href="#publiceren">Live-pagina publiceren</a>
+  <a href="#updaten">Updaten</a>
+  <a href="#problemen">Problemen</a>
+  <a href="#versies">Versies</a>
+</div></nav>
+
+<main>
+
+<!-- ============================================================ DOWNLOAD -->
+<section id="download">
+  <h2>Download</h2>
+  <p>Laatste versie: <span class="badge" id="latest-version">laden…</span>
+     <span class="meta" id="latest-date"></span></p>
+
+  <div class="dl-grid">
+    <div class="dl-card">
+      <h3>Windows</h3>
+      <div class="meta" id="win-meta">Installer met alles erin — geen Python nodig.</div>
+      <a class="btn" id="win-dl" href="#">Download installer</a>
+    </div>
+    <div class="dl-card">
+      <h3>Linux</h3>
+      <div class="meta" id="lin-meta">Pakket met installatiescript (x86_64).</div>
+      <a class="btn alt" id="lin-dl" href="#">Download pakket</a>
+    </div>
+  </div>
+
+  <p class="loading" id="dl-fallback" hidden>
+    Kan de versie-informatie even niet ophalen —
+    <a id="releases-link" href="#">bekijk alle releases op GitHub</a>.
+  </p>
+
+  <div class="note">
+    <b>Wat je krijgt:</b> een matrix van alle deelnemende stations × banden die
+    live meekleurt terwijl je in N1MM logt, filters en overzichten, export naar
+    CSV en PDF, en een publieke webpagina waarop thuisblijvers kunnen meevolgen.
+  </div>
+</section>
+
+<!-- ========================================================== INSTALLEREN -->
+<section id="installeren">
+  <h2>Installeren</h2>
+
+  <h3>Windows</h3>
+  <ol>
+    <li>Download de installer hierboven en dubbelklik ze.</li>
+    <li>Windows vraagt om <b>beheerrechten</b> — klik Ja. Dat is nodig voor de
+        installatiemap en de firewall-regel.</li>
+    <li>Ziet je browser of Windows het bestand als "onbekend"? Kies
+        <i>Behouden</i> en daarna <i>Toch uitvoeren</i>. Het pakket is niet
+        ondertekend met een (dure) code-signing-certificaat — de broncode staat
+        volledig open op GitHub.</li>
+    <li>Op de pagina <b>Standaardinstellingen</b> laat je de waarden staan als
+        N1MM op dezelfde laptop draait:
+        <code>127.0.0.1</code>, poort <code>12060</code>, taal <code>nl</code>.</li>
+    <li>De installer maakt een snelkoppeling op je bureaublad en zet de
+        firewall-regel klaar. Op het eind toont hij de N1MM-instructie.</li>
+  </ol>
+
+  <h3>Linux</h3>
+  <pre><code>tar xzf N1MMFieldDayTracker-*-linux-x86_64.tar.gz
+cd N1MMFieldDayTracker-*-linux-x86_64
+./install.sh</code></pre>
+  <p>Geen root nodig — alles komt in je eigen home-map. Daarna staat het
+     programma in je menu, of start je het met
+     <code>n1mm-fieldday-tracker</code>. Verwijderen kan met
+     <code>./install.sh --uninstall</code>.</p>
+
+  <h3>Vanaf de broncode (elk platform)</h3>
+  <pre><code>python -m venv .venv
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+python -m app.main</code></pre>
+
+  <div class="note">
+    <b>Je gegevens staan veilig apart.</b> Velddagen, QSO's en instellingen
+    bewaren we buiten de programmamap
+    (<code>%LOCALAPPDATA%\N1MM Field Day Tracker\</code> op Windows,
+    <code>~/.local/share/</code> op Linux). Een update of herinstallatie raakt
+    ze nooit.
+  </div>
+</section>
+
+<!-- ================================================================ N1MM -->
+<section id="n1mm">
+  <h2>N1MM instellen (belangrijkste stap)</h2>
+  <p>Zonder deze instelling stuurt N1MM niets door en blijft de matrix leeg.</p>
+  <ol>
+    <li>Open in N1MM Logger+:
+        <b>Config &gt; Configure Ports, Mode Control, Audio, Other…</b></li>
+    <li>Ga naar het tabblad <b>Broadcast Data</b>.</li>
+    <li>Vink <b>Contacts</b> aan — <i>niet</i> Lookup.</li>
+    <li>Vul bij de bestemming het adres en de poort in:
+      <table>
+        <tr><th>Situatie</th><th>Wat invullen</th></tr>
+        <tr><td>N1MM op <b>dezelfde</b> laptop als de tracker</td>
+            <td><code>127.0.0.1:12060</code></td></tr>
+        <tr><td>N1MM op een <b>andere</b> pc</td>
+            <td>het netwerk-IP van de trackerlaptop, bv.
+                <code>192.168.1.50:12060</code> — en zet in de tracker het
+                luisteradres op <code>0.0.0.0</code></td></tr>
+      </table>
+    </li>
+    <li>Kies als contesttype <b>FDREG1</b>.</li>
+    <li>Log een test-QSO. De cel hoort binnen 5 seconden groen te kleuren.</li>
+  </ol>
+  <div class="warn">
+    <b>Meerdere N1MM-pc's?</b> Laat ze allemaal naar hetzelfde adres en
+    dezelfde poort van de trackerlaptop sturen. In de weergave
+    <b>Per bron-PC</b> zie je per computer of hij LIVE of STALE is — handig om
+    een losgeraakte netwerkkabel meteen op te merken.
+  </div>
+</section>
+
+<!-- ============================================================= GEBRUIK -->
+<section id="gebruik">
+  <h2>Gebruiken tijdens de velddag</h2>
+
+  <h3>1. Velddag aanmaken</h3>
+  <p><b>Beheer → Nieuwe velddag</b>: naam, start en einde (lokale tijd), en de
+     banden die je wil volgen. Je kan de deelnemerslijst en instellingen
+     overnemen van een vorige velddag. Er is altijd precies één
+     <b>actieve</b> velddag — daar schrijft N1MM naartoe.</p>
+
+  <h3>2. Deelnemerslijst importeren</h3>
+  <p><b>Beheer → Deelnemerslijst → Excel/CSV importeren</b>. De lijst wordt
+     herkend op <b>kolomkoppen</b> (eerste rij), niet op volgorde. Enkel een
+     roepnaamkolom is verplicht (<code>Call</code>, <code>Callsign</code> of
+     <code>Roepnaam</code>); Naam, Club, Categorie, Sectie en Opmerking worden
+     meegenomen als ze er staan. Ingevulde bandcellen uit de Excel worden
+     bewust <i>niet</i> overgenomen — elke velddag start met een lege matrix.</p>
+
+  <h3>3. De matrix</h3>
+  <p>Zes weergaven: <b>Matrix</b>, <b>Nog te werken</b>, <b>Per band</b>,
+     <b>Per station</b>, <b>Per bron-PC</b> en <b>Statistiek</b>. Filter op
+     zoekterm, status, band, categorie of sectie.</p>
+  <p>Tik op een cel voor de details. Daar zet je ook een <b>handmatige
+     status</b>: <i>Markeer gewerkt</i>, <i>Markeer NIET gewerkt</i> of
+     <i>Uitsluiten</i>, met eventueel een reden (bv. "papieren log"). Een
+     handmatige status wint altijd van wat N1MM zegt en is herkenbaar aan het
+     potloodsymbool.</p>
+
+  <h3>4. Stations toevoegen of verwijderen</h3>
+  <p>Een station dat op de dag zelf aansluit voeg je toe met <b>+ Station</b>.
+     Verwijderen doe je via het celdetail (<i>Dit station verwijderen</i>, met
+     bevestiging); ontvangen QSO's blijven bewaard, dus opnieuw toevoegen
+     herstelt alles.</p>
+
+  <h3>5. Was de tracker even uit?</h3>
+  <p>UDP draagt enkel live-verkeer, dus QSO's van tijdens een uitval komen niet
+     vanzelf binnen. Haal ze in: in N1MM <b>File → Export → Export to ADIF</b>,
+     en in de tracker <b>Beheer → ADIF-import</b>. Reeds bekende QSO's worden
+     overgeslagen, dus dit mag zo vaak als nodig zonder dubbels.</p>
+
+  <h3>6. Exporteren</h3>
+  <p><b>Beheer → Export</b> geeft een CSV of een PDF (A4 liggend) van de
+     volledige matrix. Handig als naslag na afloop.</p>
+
+  <h3>7. Velddag afsluiten</h3>
+  <p>Met <b>Velddag afsluiten</b> negeert de tracker nieuwe QSO's; bekijken en
+     exporteren blijft gewoon mogelijk. Heropenen kan altijd.</p>
+</section>
+
+<!-- ========================================================== PUBLICEREN -->
+<section id="publiceren">
+  <h2>De live-pagina publiceren (optioneel)</h2>
+  <p>Wil je dat thuisblijvers en andere secties kunnen meevolgen, dan publiceert
+     de tracker een alleen-lezen pagina naar GitHub Pages. Dit hoef je maar
+     één keer op te zetten.</p>
+
+  <h3>Eenmalige opzet</h3>
+  <ol>
+    <li>Maak op GitHub een <b>publieke</b> repository aan, bv.
+        <code>velddag-live</code>.</li>
+    <li>Ga in die repo naar <b>Settings → Pages</b> en zet de bron op de
+        <code>main</code>-branch, map <code>/ (root)</code>.</li>
+    <li>Maak een <b>fine-grained token</b>:
+        <b>Settings → Developer settings → Personal access tokens →
+        Fine-grained tokens</b>. Geef het toegang tot <i>enkel</i> die ene repo,
+        met de rechten <b>Contents: Read and write</b>.</li>
+    <li>Vul in de tracker onder <b>Beheer → Publiceren</b> in:
+      <ul>
+        <li><b>Repository</b>: als <code>eigenaar/naam</code>, bv.
+            <code>ON3VZ/velddag-live</code> — dus <i>niet</i> de volledige
+            https-link.</li>
+        <li><b>Token</b>: plak het token en klik <i>Token opslaan</i>. Het gaat
+            in de sleutelbos van je besturingssysteem, nooit in een bestand.</li>
+      </ul>
+    </li>
+    <li>Klik <b>Nu publiceren</b>. De pagina staat daarna op
+        <code>https://&lt;jouw-account&gt;.github.io/velddag-live/</code>.</li>
+  </ol>
+  <p>Zet daarna <b>automatisch publiceren</b> aan met een interval (bv. elke
+     5 minuten), zodat de pagina vanzelf meeloopt.</p>
+
+  <div class="warn">
+    <b>De gepubliceerde pagina is openbaar.</b> Iedereen met de link ziet
+    roepnamen en gewerkt-status. Opmerkingen en operatornotities blijven
+    weggelaten, tenzij je dat expliciet aanzet.
+  </div>
+
+  <h3>Wat het publiek ziet</h3>
+  <table>
+    <tr><th>Situatie</th><th>De publieke pagina toont</th></tr>
+    <tr><td>Actieve velddag, binnen de periode</td><td>de live matrix</td></tr>
+    <tr><td>Vóór de start</td><td>aankondiging met datum en aftelling</td></tr>
+    <tr><td>Geen actieve velddag</td><td>"geen actieve velddag" + de volgende geplande datum</td></tr>
+    <tr><td>Vanaf 1 week na het einde</td><td>"deze velddag is afgelopen" — geen resultaten meer</td></tr>
+  </table>
+  <p>Bij alle niet-live toestanden staat er ook géén deelnemers- of QSO-data in
+     het gepubliceerde bestand.</p>
+</section>
+
+<!-- ============================================================= UPDATEN -->
+<section id="updaten">
+  <h2>Updaten</h2>
+  <p>Ga in de app naar <b>Beheer → Applicatie</b>. Daar staat je huidige
+     versienummer en de knop <b>Controleer op updates</b>. Is er een nieuwere
+     versie, dan haalt <b>Nu downloaden en installeren</b> de setup op en start
+     ze — bevestig de Windows-melding en klaar.</p>
+  <p>Je velddagen, QSO's en instellingen blijven daarbij ongemoeid.</p>
+  <p>Op Linux: download het nieuwe pakket hierboven en draai opnieuw
+     <code>./install.sh</code> — dat vervangt de vorige installatie.</p>
+</section>
+
+<!-- ============================================================ PROBLEMEN -->
+<section id="problemen">
+  <h2>Problemen oplossen</h2>
+
+  <h3>De matrix blijft leeg terwijl ik log</h3>
+  <ol>
+    <li>Staat in N1MM <b>Broadcast Data → Contacts</b> aangevinkt (niet Lookup)?</li>
+    <li>Komt de poort in N1MM exact overeen met die in de tracker (standaard
+        <code>12060</code>)?</li>
+    <li>Draait N1MM op een andere pc? Zet dan het luisteradres van de tracker op
+        <code>0.0.0.0</code> en gebruik in N1MM het netwerk-IP van de
+        trackerlaptop.</li>
+    <li>Kijk bij <b>Per bron-PC</b>: staat daar niets, dan komt er geen enkel
+        pakket binnen — dat wijst op de firewall of een verkeerd adres.</li>
+    <li>Staat de roepnaam wel in de deelnemerslijst? Onbekende roepnamen worden
+        bewust genegeerd.</li>
+  </ol>
+
+  <h3>Ontvangst viel stil na slaapstand</h3>
+  <p>De app herstelt dat normaal binnen tien seconden vanzelf. Gebeurt het toch
+     niet, klik dan <b>Beheer → Applicatie → Ontvangst herstarten</b>.</p>
+
+  <h3>Windows vraagt om firewall-toegang</h3>
+  <p>Klik <b>Toegang toestaan</b>. Gebruikte je de installer, dan is de regel al
+     gezet en zou de vraag niet mogen komen.</p>
+
+  <h3>Publiceren lukt niet</h3>
+  <p>Controleer of de repository als <code>eigenaar/naam</code> is ingevuld (niet
+     de volledige link) en of het token <b>Contents: Read and write</b> heeft op
+     díé repo. Zonder internet pauzeert het publiceren netjes en hervat het
+     vanzelf.</p>
+
+  <h3>De app is gecrasht</h3>
+  <p>Herstart gewoon. Elk QSO wordt bij binnenkomst meteen weggeschreven, dus je
+     verliest niets. Als laatste vangnet staat elk ruw pakket in
+     <code>raw_packets.log</code>.</p>
+</section>
+
+<!-- ============================================================= VERSIES -->
+<section id="versies">
+  <h2>Versiegeschiedenis</h2>
+  <p class="loading" id="rel-loading">Releases ophalen…</p>
+  <div id="releases"></div>
+  <p><a id="all-releases" href="#">Alle releases op GitHub →</a></p>
+</section>
+
+</main>
+
+<footer><div class="wrap">
+  <p><b>N1MM Field Day Tracker</b> — gemaakt voor UBA-sectie WLD (ON6WL).
+     Broncode en meldingen: <a id="repo-link" href="#">GitHub</a>.</p>
+  <p>N1MM Logger+ is een zelfstandig project; deze tracker is er geen onderdeel
+     van en vervangt het niet.</p>
+</div></footer>
+
+<script>
+(function () {
+  "use strict";
+  var REPO = "ON3VZ/n1mm-fieldday-tracker";
+  var API = "https://api.github.com/repos/" + REPO;
+  var WEB = "https://github.com/" + REPO;
+
+  document.getElementById("repo-link").href = WEB;
+  document.getElementById("all-releases").href = WEB + "/releases";
+  document.getElementById("releases-link").href = WEB + "/releases";
+  // Werkende standaardlinks, ook als de API niet antwoordt.
+  document.getElementById("win-dl").href = WEB + "/releases/latest";
+  document.getElementById("lin-dl").href = WEB + "/releases/latest";
+
+  function fmtSize(bytes) {
+    if (!bytes) return "";
+    return (bytes / 1048576).toFixed(1) + " MB";
+  }
+  function fmtDate(iso) {
+    if (!iso) return "";
+    try {
+      return new Date(iso).toLocaleDateString("nl-BE",
+        { year: "numeric", month: "long", day: "numeric" });
+    } catch (e) { return iso.slice(0, 10); }
+  }
+
+  // ---- laatste versie + directe downloadlinks ----
+  fetch(API + "/releases/latest")
+    .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); })
+    .then(function (rel) {
+      document.getElementById("latest-version").textContent = rel.tag_name || "?";
+      document.getElementById("latest-date").textContent =
+        rel.published_at ? " — uitgebracht op " + fmtDate(rel.published_at) : "";
+
+      (rel.assets || []).forEach(function (asset) {
+        var name = (asset.name || "").toLowerCase();
+        if (name.indexOf(".exe") !== -1) {
+          document.getElementById("win-dl").href = asset.browser_download_url;
+          document.getElementById("win-meta").textContent =
+            "Installer met alles erin — geen Python nodig. " + fmtSize(asset.size);
+        } else if (name.indexOf(".tar.gz") !== -1) {
+          document.getElementById("lin-dl").href = asset.browser_download_url;
+          document.getElementById("lin-meta").textContent =
+            "Pakket met installatiescript (x86_64). " + fmtSize(asset.size);
+        }
+      });
+    })
+    .catch(function () {
+      document.getElementById("latest-version").textContent = "zie GitHub";
+      document.getElementById("dl-fallback").hidden = false;
+    });
+
+  // ---- versiegeschiedenis ----
+  fetch(API + "/releases?per_page=10")
+    .then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.json(); })
+    .then(function (list) {
+      var box = document.getElementById("releases");
+      document.getElementById("rel-loading").hidden = true;
+      if (!list.length) { box.textContent = "Nog geen releases gepubliceerd."; return; }
+      list.forEach(function (rel) {
+        var div = document.createElement("div");
+        div.className = "rel";
+        var h = document.createElement("h4");
+        var a = document.createElement("a");
+        a.href = rel.html_url; a.textContent = rel.tag_name || rel.name || "release";
+        h.appendChild(a);
+        var d = document.createElement("div");
+        d.className = "date"; d.textContent = fmtDate(rel.published_at);
+        div.appendChild(h); div.appendChild(d);
+        if (rel.body && rel.body.trim()) {
+          var b = document.createElement("div");
+          b.className = "body";
+          b.textContent = rel.body.trim().slice(0, 700);
+          div.appendChild(b);
+        }
+        box.appendChild(div);
+      });
+    })
+    .catch(function () {
+      document.getElementById("rel-loading").textContent =
+        "Kan de versiegeschiedenis even niet ophalen — bekijk ze op GitHub.";
+    });
+})();
+</script>
+</body>
+</html>

@@ -103,3 +103,20 @@ QSO id, newest-wins overrides with tombstones) and is on the roadmap below.
 ## Status
 
 In active development; see `docs/DRAAIBOEK.md` (NL) to get running.
+
+
+## Installeren als programma (aanbevolen voor gebruikers)
+
+Er is een Windows-installer: dubbelklik
+`N1MMFieldDayTracker-Setup-x.y.z.exe`, klaar. Geen Python, geen commando's —
+de runtime zit mee in het programma. De installer maakt snelkoppelingen, zet
+de firewall-regel klaar, vraagt de standaardwaarden (UDP-adres/poort/taal) en
+herinnert je op het eind aan de N1MM-instelling.
+
+Updaten doe je in de app zelf: **Beheer → Applicatie → Controleer op
+updates**. Velddaggegevens staan in `%LOCALAPPDATA%\N1MM Field Day Tracker\`
+en overleven elke update of herinstallatie.
+
+Zelf een installer bouwen? Zie [`packaging/README-BUILD.md`](packaging/README-BUILD.md).
+
+## Vanaf de broncode draaien (ontwikkelaars)

@@ -429,3 +429,6 @@ details.acc > summary:hover { color: var(--teal); }
 .pub-notice p { margin: 0; color: var(--ink-soft); font-size: 1.05rem; line-height: 1.5; }
 
 .rm-hint { font-size: 0.85rem; color: var(--ink-soft); margin: 0.3rem 0 0.5rem; }
+
+.app-version { font-family: var(--mono, monospace); color: var(--ink-soft); margin: 0.2rem 0 0.5rem; }
+#update-status { margin-top: 0.5rem; }

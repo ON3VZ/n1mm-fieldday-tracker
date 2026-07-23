@@ -107,6 +107,7 @@ def main(argv: list[str] | None = None) -> int:
         save_app_settings(settings)
 
     state = AppState(repo)
+    state._shutdown_requested = False
 
     if args.import_excel:
         _import_excel(state, args.import_excel)
@@ -122,6 +123,8 @@ def main(argv: list[str] | None = None) -> int:
     server = make_server(state, args.http_host, args.http_port)
     url = f"http://{args.http_host}:{args.http_port}/"
     fieldday = state.engine.fieldday
+    from app.version import APP_VERSION
+    print(f"N1MM Field Day Tracker v{APP_VERSION}")
     print(f"Field day : {fieldday.name} ({repo.slug})")
     print(f"Stations  : {len(state.engine.stations)}  |  "
           f"Bands: {', '.join(fieldday.selected_bands)}")
@@ -132,11 +135,24 @@ def main(argv: list[str] | None = None) -> int:
     if not args.no_browser:
         webbrowser.open(url)
 
+    # Run the server in a background thread so the main thread can watch for
+    # a shutdown request coming from the Quit button or the updater. Ctrl+C
+    # still works for the command-line/development case.
+    import threading as _threading
+
+    server_thread = _threading.Thread(target=server.serve_forever, daemon=True)
+    server_thread.start()
     try:
-        server.serve_forever()
+        while not getattr(state, "_shutdown_requested", False):
+            server_thread.join(timeout=0.5)
+            if not server_thread.is_alive():
+                break
+        if getattr(state, "_shutdown_requested", False):
+            print("\nShutdown requested — stopping…")
     except KeyboardInterrupt:
         print("\nStopping…")
     finally:
+        server.shutdown()
         state.stop()
         server.server_close()
     return 0

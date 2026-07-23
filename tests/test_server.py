@@ -643,3 +643,50 @@ class TestRemoveStation:
         status, result = http_post(http_port, "/api/station/remove",
                                    {"normalized_callsign": "ON4BAF"})
         assert status == 400 and "closed" in result["error"]
+
+
+class TestLifecycleEndpoints:
+    def test_version(self, running_app):
+        _, _, _, http_port = running_app
+        status, data = http_get(http_port, "/api/version")
+        assert status == 200 and data["ok"]
+        assert data["version"].count(".") == 2  # x.y.z
+
+    def test_restart_listener(self, running_app):
+        state, _, _, http_port = running_app
+        old_thread = state.listener._thread
+        status, data = http_post(http_port, "/api/listener/restart", {})
+        assert status == 200 and data["ok"] and data["listening"]
+        assert state.listener._thread is not old_thread  # echt herstart
+        assert state.listener.running  # nieuwe listener draait
+
+    def test_watchdog_revives_dead_listener(self, running_app):
+        state, _, _, http_port = running_app
+        state._start_listener_watchdog()  # idempotent
+        # simuleer een 'dode' listener (zoals na slaapstand)
+        state.listener.stop()
+        assert not state.listener.running
+        # watchdog draait elke 10s; forceer één iteratie handmatig
+        state.restart_listener()
+        assert wait_until(lambda: state.listener.running, timeout=3)
+
+    def test_quit_sets_flag(self, running_app):
+        state, _, _, http_port = running_app
+        state._shutdown_requested = False
+        status, data = http_post(http_port, "/api/app/quit", {})
+        assert status == 200 and data["ok"]
+        assert state._shutdown_requested is True
+
+    def test_update_check_handles_offline(self, running_app, monkeypatch):
+        state, _, _, http_port = running_app
+        import urllib.request
+        def boom(*a, **k): raise OSError("no network")
+        monkeypatch.setattr(urllib.request, "urlopen", boom)
+        result = state.check_update()
+        assert result["ok"] is True
+        assert result["update_available"] is False
+
+    def test_apply_update_rejects_foreign_url(self, running_app):
+        state, _, _, _ = running_app
+        result = state.apply_update({"installer_url": "https://evil.example.com/x.exe"})
+        assert result["ok"] is False

@@ -55,24 +55,84 @@ class AppState:
         self._lock = threading.Lock()
         self._raw_log_path = repo.dir / "raw_packets.log"
         self._settings_cache = None
+        self._watchdog_thread = None
+        self._listener_host = None
+        self._listener_port = None
 
     # -- listener wiring --------------------------------------------------
 
     def start_listener(self, host: str | None = None, port: int | None = None) -> bool:
         fieldday = self.engine.fieldday
+        self._listener_host = host if host is not None else fieldday.n1mm_udp_host
+        self._listener_port = port if port is not None else fieldday.n1mm_udp_port
         self.listener = N1mmUdpListener(
             self._on_packet,
-            host=host if host is not None else fieldday.n1mm_udp_host,
-            port=port if port is not None else fieldday.n1mm_udp_port,
+            host=self._listener_host,
+            port=self._listener_port,
         )
-        return self.listener.start()
+        ok = self.listener.start()
+        if ok:
+            self._start_listener_watchdog()
+        return ok
+
+    def restart_listener(self) -> dict[str, Any]:
+        """Manually restart the UDP listener (button + watchdog use this).
+
+        Rebinds on the same host/port. Used after the PC wakes from sleep,
+        or when the user clicks 'Restart reception'. Never raises.
+        """
+        try:
+            with self._lock:
+                if self.listener is not None:
+                    self.listener.stop()
+            host = getattr(self, "_listener_host", self.engine.fieldday.n1mm_udp_host)
+            port = getattr(self, "_listener_port", self.engine.fieldday.n1mm_udp_port)
+            self.listener = N1mmUdpListener(self._on_packet, host=host, port=port)
+            ok = self.listener.start()
+            return {"ok": ok, "listening": ok,
+                    "error": None if ok else self.listener.bind_error}
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("restart_listener failed")
+            return {"ok": False, "listening": False, "error": str(exc)}
+
+    def _start_listener_watchdog(self) -> None:
+        """Background check that revives the listener if its thread died.
+
+        A laptop going to sleep can silently kill the receive thread; on wake
+        the socket is dead and no QSOs arrive. The watchdog notices the thread
+        is no longer running and rebinds automatically — no user action, no
+        restarted app. Runs at most once per interval and never crashes.
+        """
+        import threading as _threading
+
+        if getattr(self, "_watchdog_thread", None) is not None:
+            return
+        self._watchdog_stop = _threading.Event()
+
+        def loop() -> None:
+            import time as _time
+
+            while not self._watchdog_stop.wait(10):
+                try:
+                    if (self.listener is not None
+                            and not self.listener.running
+                            and not self.engine.fieldday.closed):
+                        logger.warning("Listener not running — auto-restarting")
+                        self.restart_listener()
+                except Exception:  # noqa: BLE001
+                    logger.exception("Listener watchdog iteration failed")
+
+        self._watchdog_thread = _threading.Thread(
+            target=loop, name="listener-watchdog", daemon=True)
+        self._watchdog_thread.start()
 
     def stop(self) -> None:
         if self.listener is not None:
             self.listener.stop()
-        stop_event = getattr(self, "_auto_publish_stop", None)
-        if stop_event is not None:
-            stop_event.set()
+        for attr in ("_auto_publish_stop", "_watchdog_stop"):
+            event = getattr(self, attr, None)
+            if event is not None:
+                event.set()
 
     def _append_raw(self, parsed: ParsedPacket, address: tuple[str, int]) -> None:
         """§5.5: retain every raw packet, also ignored/error ones."""
@@ -413,6 +473,107 @@ class AppState:
         if state in ("live", "expired"):
             block["end_utc"] = to_iso_z(fieldday.end_utc)
         return block
+
+    def version_info(self) -> dict[str, Any]:
+        from app.version import APP_VERSION, GITHUB_REPO
+
+        return {"ok": True, "version": APP_VERSION, "repo": GITHUB_REPO}
+
+    def check_update(self) -> dict[str, Any]:
+        """Ask GitHub for the latest release and compare with our version.
+
+        Returns update_available + the installer asset URL when newer. Never
+        raises; on any network problem it reports available=False with a note.
+        """
+        import json as jsonlib
+        import urllib.request
+        from app.version import APP_VERSION, GITHUB_REPO
+
+        def _parse(tag: str) -> tuple:
+            nums = tag.lstrip("vV").split("-")[0].split(".")
+            try:
+                return tuple(int(n) for n in nums)
+            except ValueError:
+                return (0,)
+
+        url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+        try:
+            req = urllib.request.Request(url, headers={
+                "Accept": "application/vnd.github+json",
+                "User-Agent": "n1mm-fieldday-tracker",
+            })
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                data = jsonlib.loads(resp.read().decode("utf-8"))
+        except Exception as exc:  # noqa: BLE001
+            logger.info("Update check failed: %s", exc)
+            return {"ok": True, "update_available": False,
+                    "current": APP_VERSION, "error": "could not reach GitHub"}
+
+        latest_tag = str(data.get("tag_name", ""))
+        newer = _parse(latest_tag) > _parse(APP_VERSION)
+        installer_url = ""
+        for asset in data.get("assets", []):
+            name = str(asset.get("name", "")).lower()
+            if name.endswith(".exe") or name.endswith(".msi"):
+                installer_url = asset.get("browser_download_url", "")
+                break
+        return {
+            "ok": True,
+            "update_available": newer,
+            "current": APP_VERSION,
+            "latest": latest_tag,
+            "installer_url": installer_url,
+            "release_url": data.get("html_url", ""),
+            "notes": data.get("body", "")[:2000],
+        }
+
+    def request_shutdown(self) -> dict[str, Any]:
+        """Signal a clean shutdown of the whole application (Quit button)."""
+        self._shutdown_requested = True
+        return {"ok": True}
+
+    def apply_update(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Download the new installer and launch it, then ask the app to quit.
+
+        The installer (run by the user, elevated) replaces the program while
+        field day data in AppData is left untouched. Only https URLs on the
+        configured GitHub repo are accepted, so a poisoned payload cannot make
+        us run an arbitrary file.
+        """
+        import os
+        import subprocess
+        import tempfile
+        import urllib.request
+        from app.version import GITHUB_REPO
+
+        url = str(payload.get("installer_url", ""))
+        if not url.startswith("https://github.com/") or GITHUB_REPO.split("/")[0].lower() \
+                not in url.lower():
+            return {"ok": False, "error": "refusing to download from an "
+                    "unexpected location"}
+        try:
+            suffix = ".exe" if url.lower().endswith(".exe") else ".msi"
+            fd, tmp_path = tempfile.mkstemp(suffix=suffix, prefix="fdtracker-update-")
+            os.close(fd)
+            req = urllib.request.Request(url, headers={
+                "User-Agent": "n1mm-fieldday-tracker"})
+            with urllib.request.urlopen(req, timeout=60) as resp, \
+                    open(tmp_path, "wb") as out:
+                out.write(resp.read())
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("Update download failed")
+            return {"ok": False, "error": f"download failed: {exc}"}
+
+        try:
+            if os.name == "nt":
+                # Launch the installer detached; it will prompt for elevation.
+                os.startfile(tmp_path)  # type: ignore[attr-defined]  # noqa: S606
+            else:
+                subprocess.Popen([tmp_path])  # pragma: no cover
+        except Exception as exc:  # noqa: BLE001
+            return {"ok": False, "error": f"could not launch installer: {exc}"}
+        self._shutdown_requested = True
+        return {"ok": True, "launched": True}
 
     # -- publishing (phase 16) --------------------------------------------
 
@@ -931,6 +1092,12 @@ class TrackerRequestHandler(SimpleHTTPRequestHandler):
         if path == "/api/publish/status":
             self._send_json(state.publish_status())
             return
+        if path == "/api/version":
+            self._send_json(state.version_info())
+            return
+        if path == "/api/update/check":
+            self._send_json(state.check_update())
+            return
         if path == "/api/fieldday/export":
             from urllib.parse import urlparse, parse_qs
 
@@ -979,6 +1146,12 @@ class TrackerRequestHandler(SimpleHTTPRequestHandler):
             elif path == "/api/station/remove":
                 result = state.remove_station(payload)
                 self._send_json(result, 200 if result.get("ok") else 400)
+            elif path == "/api/listener/restart":
+                self._send_json(state.restart_listener())
+            elif path == "/api/update/apply":
+                self._send_json(state.apply_update(payload))
+            elif path == "/api/app/quit":
+                self._send_json(state.request_shutdown())
             elif path == "/api/fieldday/close":
                 self._send_json(state.close_fieldday())
             elif path == "/api/fieldday/reopen":
