@@ -10,26 +10,35 @@ startup is faster; the Inno Setup installer packs the whole folder.
 """
 
 import os
+import sys as _sys
 from PyInstaller.utils.hooks import collect_submodules
 
 block_cipher = None
 
+# PyInstaller resolves relative paths in a spec against the SPEC file's own
+# directory (packaging/), not the directory you run it from. Build absolute
+# paths from the project root so the build works from anywhere — including CI.
+PROJECT_ROOT = os.path.abspath(os.path.join(SPECPATH, os.pardir))
+
 # The web UI (index.html, app.js, style.css) must ship inside the exe bundle;
 # config.static_view_dir() reads them from sys._MEIPASS at runtime.
 datas = [
-    ("app/view/static", "app/view/static"),
+    (os.path.join(PROJECT_ROOT, "app", "view", "static"), "app/view/static"),
 ]
 
 # keyring uses dynamically imported backends; make sure they are included.
+# The pywin32-ctypes helper only exists on Windows, so add it conditionally —
+# otherwise the Linux build in CI fails on a missing module.
 hiddenimports = (
     collect_submodules("keyring")
     + collect_submodules("keyring.backends")
-    + ["win32ctypes.pywin32"]  # keyring's Windows backend dependency
 )
+if _sys.platform == "win32":
+    hiddenimports += ["win32ctypes.pywin32"]
 
 a = Analysis(
-    ["launcher.py"],
-    pathex=[os.path.abspath(os.path.join(os.getcwd()))],
+    [os.path.join(SPECPATH, "launcher.py")],
+    pathex=[PROJECT_ROOT],
     binaries=[],
     datas=datas,
     hiddenimports=hiddenimports,
@@ -54,8 +63,8 @@ exe = EXE(
     strip=False,
     upx=False,
     console=True,          # keep a console window so the user can see status
-    icon=os.path.join("packaging", "tracker.ico")
-        if os.path.exists(os.path.join("packaging", "tracker.ico")) else None,
+    icon=(os.path.join(SPECPATH, "tracker.ico")
+          if os.path.exists(os.path.join(SPECPATH, "tracker.ico")) else None),
 )
 coll = COLLECT(
     exe,
