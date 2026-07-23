@@ -1,0 +1,138 @@
+name: Release
+
+# Bouwt automatisch de Windows-installer en het Linux-pakket zodra je een tag
+# vXXX pusht, en hangt beide aan een GitHub Release. De updateknop in de app
+# leest die release, dus meer hoef je niet te doen.
+#
+# Handmatig starten kan ook via het tabblad "Actions" (workflow_dispatch).
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write # nodig om de Release aan te maken en bestanden te uploaden
+
+jobs:
+  # ------------------------------------------------------------------ Windows
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Versie uitlezen uit app/version.py
+        id: version
+        shell: pwsh
+        run: |
+          $v = (Select-String -Path app/version.py -Pattern '^APP_VERSION\s*=\s*"(.+)"').Matches[0].Groups[1].Value
+          echo "version=$v" >> $env:GITHUB_OUTPUT
+          echo "Versie: $v"
+
+      - name: Pakketten installeren
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller pywin32-ctypes
+
+      - name: Tests draaien
+        run: python -m pytest tests/ -q
+
+      - name: Applicatie bouwen (PyInstaller)
+        run: pyinstaller --noconfirm --clean packaging/tracker.spec
+
+      - name: Inno Setup installeren
+        run: choco install innosetup --no-progress -y
+
+      - name: Installer bouwen
+        shell: cmd
+        run: |
+          "%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe" /DAppVersion=${{ steps.version.outputs.version }} packaging\installer.iss
+
+      - name: Installer bewaren
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: packaging/Output/*.exe
+          if-no-files-found: error
+
+  # -------------------------------------------------------------------- Linux
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Versie uitlezen uit app/version.py
+        id: version
+        run: |
+          v=$(grep -oP '^APP_VERSION\s*=\s*"\K[^"]+' app/version.py)
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "Versie: $v"
+
+      - name: Pakketten installeren
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Tests draaien
+        run: python -m pytest tests/ -q
+
+      - name: Applicatie bouwen (PyInstaller)
+        run: pyinstaller --noconfirm --clean packaging/tracker.spec
+
+      - name: Linux-pakket samenstellen
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          PKG=N1MMFieldDayTracker-${VERSION}-linux-x86_64
+          mkdir -p "dist/${PKG}"
+          cp -r dist/N1MMFieldDayTracker/* "dist/${PKG}/"
+          cp packaging/install.sh "dist/${PKG}/"
+          cp packaging/n1mm-fieldday-tracker.desktop "dist/${PKG}/"
+          cp docs/HANDLEIDING.md "dist/${PKG}/" || true
+          chmod +x "dist/${PKG}/install.sh" "dist/${PKG}/N1MMFieldDayTracker"
+          tar -C dist -czf "dist/${PKG}.tar.gz" "${PKG}"
+          ls -lh dist/*.tar.gz
+
+      - name: Pakket bewaren
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-package
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  # ------------------------------------------------------------------ Release
+  release:
+    needs: [build-windows, build-linux]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Gebouwde bestanden ophalen
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Bestanden op een rij zetten
+        run: |
+          mkdir -p release
+          find artifacts -type f \( -name '*.exe' -o -name '*.tar.gz' \) -exec cp {} release/ \;
+          ls -lh release/
+
+      - name: Release publiceren
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          generate_release_notes: true
+          draft: false
+          prerelease: false
