@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>N1MM Field Day Tracker — download &amp; handleiding | WLD</title>
-<meta name="description" content="Download de N1MM Field Day Tracker: live matrix van gewerkte stations per band tijdens de velddag, naast N1MM Logger+. Met installatie- en gebruikershandleiding.">
+<title>WLD Field Day Tracker — download &amp; handleiding</title>
+<meta name="description" content="Download de WLD Field Day Tracker: live matrix van gewerkte stations per band tijdens de velddag. Werkt samen met N1MM Logger+. Met installatie- en gebruikershandleiding.">
 <style>
 :root{
   --ink:#1A2332; --ink-soft:#6B7A99; --paper:#fff; --paper-soft:#F0F4F8;
@@ -71,7 +71,7 @@ footer a{color:var(--teal)}
 <header>
   <div class="wrap">
     <div class="logo">WLD</div>
-    <h1>N1MM Field Day Tracker</h1>
+    <h1>WLD Field Day Tracker</h1>
     <p>Zie tijdens de velddag live welke stations op welke band al gewerkt zijn.
        Draait naast N1MM Logger+ — N1MM blijft je officiële logger.</p>
   </div>
@@ -79,6 +79,7 @@ footer a{color:var(--teal)}
 
 <nav><div class="wrap">
   <a href="#download">Download</a>
+  <a href="#trailer">Trailer</a>
   <a href="#installeren">Installeren</a>
   <a href="#n1mm">N1MM instellen</a>
   <a href="#gebruik">Gebruiken</a>
@@ -121,6 +122,32 @@ footer a{color:var(--teal)}
   </div>
 </section>
 
+<!-- ============================================================= TRAILER -->
+<section id="trailer">
+  <h2>Bekijk de trailer</h2>
+  <p>In een halve minuut zie je wat de tracker tijdens een velddag voor je doet.</p>
+
+  <style>
+    .video-wrap{position:relative;border-radius:12px;overflow:hidden;
+      border:1px solid var(--line);background:#000;margin:1rem 0 .6rem}
+    .video-wrap video{display:block;width:100%;height:auto}
+    .video-alt{color:var(--ink-soft);font-size:.9rem;margin:0}
+  </style>
+
+  <div class="video-wrap">
+    <video controls preload="metadata" playsinline
+           src="wld-field-day-tracker-trailer.mp4">
+      Je browser kan deze video niet afspelen.
+    </video>
+  </div>
+
+  <p class="video-alt">
+    Speelt de video niet af?
+    <a href="wld-field-day-tracker-trailer.mp4" download>
+      Download het filmpje</a> en open het lokaal.
+  </p>
+</section>
+
 <!-- ========================================================== INSTALLEREN -->
 <section id="installeren">
   <h2>Installeren</h2>
@@ -142,8 +169,8 @@ footer a{color:var(--teal)}
   </ol>
 
   <h3>Linux</h3>
-  <pre><code>tar xzf N1MMFieldDayTracker-*-linux-x86_64.tar.gz
-cd N1MMFieldDayTracker-*-linux-x86_64
+  <pre><code>tar xzf *-linux-x86_64.tar.gz
+cd *-linux-x86_64
 ./install.sh</code></pre>
   <p>Geen root nodig — alles komt in je eigen home-map. Daarna staat het
      programma in je menu, of start je het met
@@ -356,7 +383,7 @@ python -m app.main</code></pre>
 </main>
 
 <footer><div class="wrap">
-  <p><b>N1MM Field Day Tracker</b> — gemaakt voor UBA-sectie WLD (ON6WL).
+  <p><b>WLD Field Day Tracker</b> — gemaakt voor UBA-sectie WLD (ON6WL).
      Broncode en meldingen: <a id="repo-link" href="#">GitHub</a>.</p>
   <p>N1MM Logger+ is een zelfstandig project; deze tracker is er geen onderdeel
      van en vervangt het niet.</p>
