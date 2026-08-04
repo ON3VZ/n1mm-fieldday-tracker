@@ -76,10 +76,22 @@ een lager versienummer, volg dan de installatiestap hieronder.
 
 ### Stap 2 — Projectmap aanmaken
 
-1. Pak het geleverde zip-bestand uit, bijvoorbeeld naar
-   `C:\N1MM-Tracker\`. Je hebt dan een map
-   `C:\N1MM-Tracker\n1mm_fieldday_tracker\` met daarin o.a. `app\` en
-   `README.md`.
+1. Pak het zip-bestand uit, bijvoorbeeld naar `C:\N1MM-Tracker\`.
+2. **Controleer de naam van de map die eruit komt.** Elk zip-bestand maakt
+   één extra map aan, en de naam verschilt naargelang de bron:
+
+   | Zip vanwaar? | Map die je krijgt |
+   |---|---|
+   | Rechtstreeks geleverd | `n1mm_fieldday_tracker` |
+   | GitHub → Code → Download ZIP | `n1mm-fieldday-tracker-main` |
+   | GitHub → *Source code (zip)* bij een release | `n1mm-fieldday-tracker-1.0.0` |
+
+3. Heet de map niet exact `n1mm_fieldday_tracker`, **hernoem ze dan zo**
+   (rechtsklik → Naam wijzigen). Daarna kloppen alle padcommando's in deze
+   handleiding en in het draaiboek zonder aanpassing.
+4. Controle: `C:\N1MM-Tracker\n1mm_fieldday_tracker\` bevat o.a. `app\`,
+   `tests\` en `README.md`. Zit daar in plaats daarvan nóg een map in, dan
+   heb je één laag te veel — verplaats de inhoud één niveau omhoog.
 
 ### Stap 3 — Virtuele omgeving aanmaken (eenmalig)
 

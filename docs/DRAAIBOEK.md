@@ -39,18 +39,51 @@ Veel stappen gebeuren in de **opdrachtprompt**:
 
 ## STAP 2 — Het project uitpakken (bij elke nieuwe versie)
 
-1. Je hebt van mij een bestand zoals `n1mm_fieldday_tracker_phase12.zip`.
-   Bewaar het in je **Downloads**.
+1. Zorg dat je het zip-bestand hebt. Twee mogelijkheden:
+   - **Van mij gekregen** (bv. `n1mm_fieldday_tracker_phase12.zip`), of
+   - **Zelf van GitHub gehaald**: op de projectpagina → groene knop
+     **Code** → **Download ZIP**.
 2. Maak één vaste plek: open Verkenner, ga naar `C:\` en maak daar een map
    **`N1MM-Tracker`**.
 3. Rechtsklik op het zip-bestand → **Alles uitpakken…** → kies als doel
    `C:\N1MM-Tracker` → **Uitpakken**.
-4. Controleer: er bestaat nu `C:\N1MM-Tracker\n1mm_fieldday_tracker\` met
-   daarin o.a. de mappen `app`, `docs`, `tests` en het bestand `README.md`.
+
+### ⚠️ Belangrijk: controleer de naam van de map die eruit komt
+
+Elk zip-bestand maakt bij het uitpakken **één extra map** aan. Hoe die
+heet, hangt af van waar je de zip vandaan hebt:
+
+| Zip vanwaar? | Map die je krijgt |
+|---|---|
+| Van mij gekregen | `C:\N1MM-Tracker\n1mm_fieldday_tracker` |
+| GitHub → Code → Download ZIP | `C:\N1MM-Tracker\n1mm-fieldday-tracker-main` |
+| GitHub → *Source code (zip)* bij een release | `C:\N1MM-Tracker\n1mm-fieldday-tracker-1.0.0` |
+
+GitHub plakt er dus altijd zelf `-main` (of het versienummer) achter. Dat is
+normaal en geen fout.
+
+4. **Heet de map niet exact `n1mm_fieldday_tracker`? Hernoem ze dan.**
+   Rechtsklik op de map → **Naam wijzigen** → typ:
+
+   ```
+   n1mm_fieldday_tracker
+   ```
+
+   Doe dit echt even — dan kloppen álle commando's in dit draaiboek, in de
+   handleiding en in het testplan zonder dat je ooit iets moet aanpassen.
+   Wil je de map toch anders noemen, dan moet je overal hierna
+   `n1mm_fieldday_tracker` vervangen door jouw eigen mapnaam.
+
+5. Controle: er bestaat nu `C:\N1MM-Tracker\n1mm_fieldday_tracker\` met
+   daarin o.a. de mappen `app`, `docs`, `tests` en het bestand
+   `README.md`. Staan `app` en `README.md` er níet in, maar zit er nóg een
+   map in? Dan heb je één laag te veel — verplaats de inhoud van die
+   binnenste map één niveau omhoog.
 
 > **Nieuwe versie ontvangen?** Pak ze gewoon uit over de oude heen
-> (bestanden vervangen: **ja**). Je velddag-gegevens staan op een andere
-> plek en blijven altijd bewaard (zie stap 9).
+> (bestanden vervangen: **ja**), en hernoem opnieuw indien nodig. Je
+> velddag-gegevens staan op een andere plek en blijven altijd bewaard
+> (zie stap 9).
 
 ---
 
@@ -65,6 +98,8 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
+- Krijg je bij de eerste regel *"Het systeem kan het opgegeven pad niet
+  vinden"*? Dan heet je map anders dan verwacht → terug naar stap 2.
 - Na de derde regel staat er **`(.venv)`** vooraan je prompt. Dat hoort zo.
 - De vierde regel downloadt een paar hulppakketten (± 1 minuut).
 
@@ -84,7 +119,9 @@ cd C:\N1MM-Tracker\n1mm_fieldday_tracker
 python -m pytest tests\
 ```
 
-✅ **Goed:** onderaan staat groen `326 passed` (het aantal groeit per fase).
+✅ **Goed:** onderaan staat groen `374 passed` of meer. Het exacte aantal
+groeit met elke nieuwe versie — waar het om gaat is dat er **nergens**
+`failed` staat.
 ❌ **Fout:** staat er ergens `failed`? Stuur mij de laatste 20 regels van
 het venster, dan los ik het op.
 
@@ -119,10 +156,27 @@ python -m app.main
   (nodig voor de N1MM-ontvangst).
 - Stoppen: klik in het zwarte venster en druk **Ctrl+C**.
 
-💡 **Maak het jezelf makkelijk:** maak in `C:\N1MM-Tracker\` een bestand
-`START-TRACKER.bat` (rechtsklik → Nieuw → Tekstdocument, plak de drie
-regels hierboven erin, sla op en hernoem naar `.bat`). Voortaan is starten
-één dubbelklik.
+💡 **Maak het jezelf makkelijk:** maak **in de projectmap zelf**
+(`C:\N1MM-Tracker\n1mm_fieldday_tracker\`) een bestand
+`START-TRACKER.bat`: rechtsklik → Nieuw → Tekstdocument, plak dit erin,
+sla op en hernoem naar `START-TRACKER.bat`.
+
+```bat
+@echo off
+cd /d "%~dp0"
+if not exist ".venv\Scripts\python.exe" (
+    echo Virtuele omgeving niet gevonden - doe eerst stap 3.
+    pause
+    exit /b 1
+)
+.venv\Scripts\python.exe -m app.main
+pause
+```
+
+Voortaan is starten één dubbelklik. De regel `cd /d "%~dp0"` betekent
+"ga naar de map waar ik zelf in sta" — daardoor blijft dit bestand werken,
+ook als de map ooit anders heet of ergens anders staat. Handig: rechtsklik
+op het bestand → **Kopiëren naar** → **Bureaublad (snelkoppeling maken)**.
 
 ---
 
@@ -196,7 +250,7 @@ daarom handmatig:
 Voor een nieuwe versie: dezelfde stappen; gewijzigde bestanden worden
 overschreven. Simpel en conflictvrij.
 
-## STAP 12 — Live publiceren voor het publiek
+## STAP 11 — Live publiceren voor het publiek
 
 Volledig stappenplan in **handleiding hoofdstuk 13b**: repo `velddag-live`
 aanmaken, GitHub Pages aanzetten, fine-grained token maken (enkel Contents
@@ -235,4 +289,5 @@ git add -A && git commit -m "fase X" && git push :: naar GitHub
 
 ---
 
-*Draaiboek bijgewerkt bij: blok A.*
+*Draaiboek bijgewerkt bij: blok A. Stap 2 aangevuld met de mapnaam die
+GitHub-downloads opleveren (`-main`), na testfeedback van ON4AOL.*
