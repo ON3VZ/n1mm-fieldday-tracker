@@ -7,9 +7,9 @@ the repository whose GitHub Releases are checked by the in-app updater.
 
 from __future__ import annotations
 
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.2.0"
 
 # Repository that publishes the installer as GitHub Releases (owner/name).
 # The updater reads https://api.github.com/repos/<repo>/releases/latest and
-# compares the tag (e.g. "v1.1.0") with APP_VERSION.
+# compares the tag (e.g. "v1.2.0") with APP_VERSION.
 GITHUB_REPO = "ON3VZ/n1mm-fieldday-tracker"

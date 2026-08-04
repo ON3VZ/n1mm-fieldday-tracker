@@ -240,3 +240,12 @@ class TestStationQsos:
         snapshot = build_snapshot(make_engine())
         ot5x = next(s for s in snapshot["stations"] if s["callsign"] == "OT5X/P")
         assert ot5x["qsos"] == []
+
+
+def test_snapshot_carries_show_station_category():
+    """Fase 25: default aan; uitgezet reist de vlag mee naar de view."""
+    engine = SyncEngine(make_fieldday(), [station("ON4BAF/P")], [], [])
+    assert build_snapshot(engine)["show_station_category"] is True
+    assert build_snapshot(engine, show_station_category=False)[
+        "show_station_category"
+    ] is False

@@ -168,10 +168,11 @@ class AppState:
                 if self.listener is not None
                 else []
             )
-            snapshot = build_snapshot(self.engine, sources, readonly=False)
-        if self._settings_cache is None:
-            from app.storage.app_settings import load_app_settings
-            self._settings_cache = load_app_settings()
+            settings_snapshot = self._app_settings()
+            snapshot = build_snapshot(
+                self.engine, sources, readonly=False,
+                show_station_category=settings_snapshot.show_station_category,
+            )
         snapshot["ui_language"] = self._settings_cache.ui_language
         fieldday = self.engine.fieldday
         snapshot["tech"] = {
@@ -609,6 +610,9 @@ class AppState:
                     snapshot = build_snapshot(
                         self.engine, sources, readonly=True,
                         include_private=publish.include_private,
+                        show_station_category=(
+                            self._app_settings().show_station_category
+                        ),
                     )
                 else:
                     # upcoming / none / expired: publish only the state block,
@@ -867,6 +871,14 @@ class AppState:
 
     # -- app settings (phase 13) ------------------------------------------
 
+    def _app_settings(self):
+        """Cached application settings; loaded on first use."""
+        if self._settings_cache is None:
+            from app.storage.app_settings import load_app_settings
+
+            self._settings_cache = load_app_settings()
+        return self._settings_cache
+
     def get_app_settings(self) -> dict[str, Any]:
         from app.storage.app_settings import load_app_settings
 
@@ -889,6 +901,8 @@ class AppState:
             )
         if "strict_callsign_matching" in payload:
             settings.strict_callsign_matching = bool(payload["strict_callsign_matching"])
+        if "show_station_category" in payload:
+            settings.show_station_category = bool(payload["show_station_category"])
         if "default_selected_bands" in payload:
             settings.default_selected_bands = [
                 str(b) for b in payload["default_selected_bands"]
@@ -949,6 +963,24 @@ class AppState:
                 result = import_stations_from_excel(tmp_path, strict=strict)
         finally:
             tmp_path.unlink(missing_ok=True)
+
+        # Fase 26: fixed format. A file that does not match is refused as a
+        # whole — no half import — and the expected layout goes back to the
+        # UI so the operator sees exactly what is wrong.
+        if not result.format_ok:
+            from app.ingest.station_importer import expected_format
+
+            self.repo.append_sync_log("station_import_rejected", result.to_report_dict())
+            return {
+                "ok": True,
+                "needs_confirmation": False,
+                "format_error": {
+                    "filename": filename,
+                    "missing_columns": list(result.missing_columns),
+                    "found_headers": list(result.found_headers),
+                    "expected": expected_format(),
+                },
+            }
 
         with self._lock:
             existing = {s.normalized_callsign: s for s in self.engine.stations}

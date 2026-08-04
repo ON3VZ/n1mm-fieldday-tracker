@@ -43,6 +43,51 @@ _HEADER_SYNONYMS: dict[str, str] = {
 }
 
 
+# §7.1 / fase 26: the participant list has a FIXED set of mandatory columns.
+# Order is free and synonyms are accepted, but these must all be present,
+# otherwise the file is refused as a whole with an explicit layout hint.
+REQUIRED_FIELDS: tuple[str, ...] = ("callsign", "category", "section")
+
+# Human-readable header names per required field, for the error message.
+_REQUIRED_LABELS: dict[str, str] = {
+    "callsign": "Call",
+    "category": "categorie",
+    "section": "sectie",
+}
+
+
+def expected_format() -> dict:
+    """The layout the importer expects, for display in the UI (fase 26).
+
+    Returned as data, not as a sentence, so the view can render it as a
+    table in the operator's own language without duplicating the rules.
+    """
+    return {
+        "required": [
+            {"header": "Call", "synonyms": ["Callsign", "Roepnaam"],
+             "example": "ON4BAF/P"},
+            {"header": "categorie", "synonyms": ["Category"],
+             "example": "Open All Band Low Power"},
+            {"header": "sectie", "synonyms": ["Section"], "example": "RST"},
+        ],
+        "required_bands": {
+            "header": "40M / 80M / 160M ...",
+            "example": "",
+        },
+        "optional": [
+            {"header": "Nummer", "example": "1"},
+            {"header": "Naam", "synonyms": ["Name"], "example": ""},
+            {"header": "Club", "example": ""},
+            {"header": "Opm.", "synonyms": ["Remarks", "Opmerking"], "example": ""},
+        ],
+        "notes": [
+            "header_first_row",
+            "order_free",
+            "band_cells_ignored",
+        ],
+    }
+
+
 @dataclass
 class RowIssue:
     """One reported problem for one input row."""
@@ -61,6 +106,14 @@ class StationImportResult:
     issues: list[RowIssue] = field(default_factory=list)
     rows_read: int = 0
     source: str = ""
+    # Fase 26: set when the file does not match the fixed format. Nothing is
+    # imported in that case; the caller shows the expected layout instead.
+    missing_columns: list[str] = field(default_factory=list)
+    found_headers: list[str] = field(default_factory=list)
+
+    @property
+    def format_ok(self) -> bool:
+        return not self.missing_columns
 
     def to_report_dict(self) -> dict:
         """Summary for the sync log / UI."""
@@ -69,6 +122,8 @@ class StationImportResult:
             "rows_read": self.rows_read,
             "imported": len(self.stations),
             "band_columns": list(self.band_columns),
+            "missing_columns": list(self.missing_columns),
+            "found_headers": list(self.found_headers),
             "issues": [
                 {"row": i.row_number, "callsign": i.callsign, "reason": i.reason}
                 for i in self.issues
@@ -124,15 +179,28 @@ def _rows_to_result(
 
     header_map, band_columns = _map_headers(rows[0])
     result.band_columns = band_columns
+    result.found_headers = [
+        str(h).strip() for h in rows[0] if h is not None and str(h).strip()
+    ]
 
-    if "callsign" not in header_map.values():
+    # Fixed-format check (fase 26): all mandatory columns plus at least one
+    # band column must be present, otherwise nothing is imported at all.
+    present = set(header_map.values())
+    missing = [
+        _REQUIRED_LABELS[fieldname]
+        for fieldname in REQUIRED_FIELDS
+        if fieldname not in present
+    ]
+    if not band_columns:
+        missing.append("band (40M / 80M / 160M ...)")
+    if missing:
+        result.missing_columns = missing
         result.issues.append(
-            RowIssue(1, "", "no callsign column found. The first row must contain "
-                     "column headers. Recognised headers (any order): Callsign "
-                     "(Call/Callsign/Roepnaam, required), Name/Naam, Club, "
-                     "Category/Categorie, Section/Sectie, Remarks/Opmerking, and "
-                     "band columns like 40m/80m/160m.")
+            RowIssue(1, "", "file layout does not match: missing column(s) "
+                     + ", ".join(missing))
         )
+        result.stations = []
+        result.band_columns = []
         return result
 
     seen: dict[str, tuple[int, str]] = {}  # normalized → (row_number, original)

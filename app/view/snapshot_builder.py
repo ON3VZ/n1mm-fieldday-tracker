@@ -88,6 +88,7 @@ def build_snapshot(
     *,
     readonly: bool = False,
     include_private: bool = True,
+    show_station_category: bool = True,
 ) -> dict[str, Any]:
     """Build the snapshot document from the engine's current state."""
     fieldday: FieldDay = engine.fieldday
@@ -225,6 +226,10 @@ def build_snapshot(
         "schema_version": SCHEMA_VERSION,
         "generated_at_utc": to_iso_z(utc_now()),
         "readonly": readonly,
+        # Display preference (§4.6): show the light-grey category line under
+        # each callsign in the matrix. Travels with the snapshot so the
+        # published copy renders identically to the local view.
+        "show_station_category": show_station_category,
         "field_day": field_day_block,
         "sources": sources_block,
         "stations": stations_block,

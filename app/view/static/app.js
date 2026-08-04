@@ -126,6 +126,20 @@ const STRINGS = {
     "manage.done": "Done.",
     "manage.created": "Field day created and available in the list.",
     "manage.imported": "{n} stations imported.",
+    "imp.badformat": "This file does not match the required layout, so nothing was imported.",
+    "imp.missingcols": "Missing column(s)",
+    "imp.foundcols": "Found in your file",
+    "imp.expected": "Required layout (first row = column headers)",
+    "imp.col": "Column",
+    "imp.alsoaccepted": "Also accepted",
+    "imp.example": "Example",
+    "imp.required": "required",
+    "imp.optional": "optional",
+    "imp.bandcols": "at least one band column",
+    "imp.note.header_first_row": "The first row must contain the column headers.",
+    "imp.note.order_free": "The order of the columns does not matter.",
+    "imp.note.band_cells_ignored": "The contents of the band columns are ignored — the matrix always starts empty.",
+    "imp.close": "Close",
     "manage.adifreport": "Read {read} — new {new}, duplicates {dup}, outside period {out}, unknown station {unk}.",
     "manage.syncreport": "Resync done: {matched} of {total} QSOs count.",
     "manage.error": "That did not work: {e}",
@@ -146,6 +160,8 @@ const STRINGS = {
     "set.udpport": "UDP port",
     "set.fresh": "Stale after (seconds without packets)",
     "set.strict": "Strict callsign matching (ON4BAF/P ≠ ON4BAF)",
+    "set.showcat": "Show category under the callsign",
+    "help.showcat": "The light-grey line under each callsign in the matrix (e.g. \"Open All Band Low Power\"). Turn it off for a compact matrix that fits more bands on screen. Filtering by category keeps working either way.",
     "set.colors": "Status colors",
     "set.savefd": "Save technical settings",
     "set.exportfolder": "Export folder (empty = default)",
@@ -156,7 +172,7 @@ const STRINGS = {
     "help.udpport": "The UDP port N1MM broadcasts to. Default 12060. It must be exactly the same number here and in N1MM's Broadcast Data settings.",
     "help.strict": "OFF (recommended): ON4BAF/P and ON4BAF count as the same station. ON: only the exact callsign as written counts, so /P, /M or a prefix make a different station. Changing this recalculates the whole matrix.",
     "help.fresh": "How many seconds a source PC may be silent before it is shown as STALE (possible cable/network problem). Default 120.",
-    "help.excel": "The participant list is recognised by COLUMN HEADERS (first row), not by order — so columns may be in any order. Recognised headers: Callsign (Call / Callsign / Roepnaam) — required; Name (Naam); Club; Category (Categorie); Section (Sectie); Remarks (Opmerking). Band columns (e.g. 40m, 80m) are picked up automatically. Extra columns are ignored. Only a callsign column is mandatory.",
+    "help.excel": "The participant list must contain these column headers in the first row: Callsign (Call / Callsign / Roepnaam), Category (categorie), Section (sectie), and at least one band column (40M, 80M, 160M ...). Order is free and extra columns such as Nummer, Naam, Club and Opm. are allowed. A file that misses a mandatory column is refused as a whole and the required layout is shown on screen. The contents of the band columns are ignored — the matrix always starts empty.",
     "help.adifbtn": "Pulls the FULL log out of N1MM. In N1MM: File > Export > Export to ADIF, then import that .adi file here. Already-known QSOs are skipped automatically, so you can do this as often as you like — also to catch up after the tracker was switched off.",
     "help.repo": "The GitHub repository as owner/name, e.g. ON3VZ/velddag-live. Do NOT paste the full https://github.com/... link.",
     "help.token": "A fine-grained personal access token with 'Contents: Read and write' on only the publish repository. It is stored in the OS keyring, never in a file.",
@@ -325,6 +341,20 @@ const STRINGS = {
     "manage.done": "Klaar.",
     "manage.created": "Velddag aangemaakt en beschikbaar in de lijst.",
     "manage.imported": "{n} stations geïmporteerd.",
+    "imp.badformat": "Dit bestand voldoet niet aan de vereiste indeling, er is niets geïmporteerd.",
+    "imp.missingcols": "Ontbrekende kolom(men)",
+    "imp.foundcols": "Gevonden in jouw bestand",
+    "imp.expected": "Vereiste indeling (eerste rij = kolomkoppen)",
+    "imp.col": "Kolom",
+    "imp.alsoaccepted": "Ook aanvaard",
+    "imp.example": "Voorbeeld",
+    "imp.required": "verplicht",
+    "imp.optional": "optioneel",
+    "imp.bandcols": "minstens één bandkolom",
+    "imp.note.header_first_row": "De eerste rij moet de kolomkoppen bevatten.",
+    "imp.note.order_free": "De volgorde van de kolommen maakt niet uit.",
+    "imp.note.band_cells_ignored": "De inhoud van de bandkolommen wordt genegeerd — de matrix start altijd leeg.",
+    "imp.close": "Sluiten",
     "manage.adifreport": "Gelezen {read} — nieuw {new}, duplicaten {dup}, buiten periode {out}, onbekend station {unk}.",
     "manage.syncreport": "Hersync klaar: {matched} van {total} QSO's tellen mee.",
     "manage.error": "Dat lukte niet: {e}",
@@ -345,6 +375,8 @@ const STRINGS = {
     "set.udpport": "UDP-poort",
     "set.fresh": "STALE na (seconden zonder pakketten)",
     "set.strict": "Strikte roepnaammatching (ON4BAF/P ≠ ON4BAF)",
+    "set.showcat": "Categorie onder de callsign tonen",
+    "help.showcat": "De lichtgrijze regel onder elke callsign in de matrix (bv. \"Open All Band Low Power\"). Zet ze uit voor een compacte matrix met meer banden op het scherm. Filteren op categorie blijft hoe dan ook werken.",
     "set.colors": "Statuskleuren",
     "set.savefd": "Technische instellingen opslaan",
     "set.exportfolder": "Exportmap (leeg = standaard)",
@@ -355,7 +387,7 @@ const STRINGS = {
     "help.udpport": "De UDP-poort waar N1MM naartoe zendt. Standaard 12060. Dit getal moet hier en in N1MM's Broadcast Data exact hetzelfde zijn.",
     "help.strict": "UIT (aanbevolen): ON4BAF/P en ON4BAF tellen als hetzelfde station. AAN: enkel de exacte roepnaam telt, dus /P, /M of een prefix maken een ander station. Wijzigen herrekent de hele matrix.",
     "help.fresh": "Na hoeveel seconden stilte een bron-PC als STALE (mogelijk kabel-/netwerkprobleem) getoond wordt. Standaard 120.",
-    "help.excel": "De deelnemerslijst wordt herkend op KOLOMKOPPEN (eerste rij), niet op volgorde — kolommen mogen dus in elke volgorde staan. Herkende koppen: Callsign (Call / Callsign / Roepnaam) — verplicht; Naam; Club; Categorie; Sectie; Opmerking. Bandkolommen (bv. 40m, 80m) worden automatisch herkend. Extra kolommen worden genegeerd. Enkel een roepnaamkolom is verplicht.",
+    "help.excel": "De deelnemerslijst moet in de eerste rij deze kolomkoppen bevatten: Call (Callsign / Roepnaam), categorie, sectie, en minstens één bandkolom (40M, 80M, 160M ...). De volgorde is vrij en extra kolommen zoals Nummer, Naam, Club en Opm. mogen erbij. Een bestand waarin een verplichte kolom ontbreekt wordt in zijn geheel geweigerd, met de vereiste indeling op het scherm. De inhoud van de bandkolommen wordt genegeerd — de matrix start altijd leeg.",
     "help.adifbtn": "Haalt het VOLLEDIGE log uit N1MM. In N1MM: File > Export > Export to ADIF, importeer dat .adi-bestand hier. Reeds bekende QSO's worden overgeslagen, dus dit mag zo vaak als je wil — ook om in te halen nadat de tracker uit stond.",
     "help.repo": "De GitHub-repository als owner/naam, bv. ON3VZ/velddag-live. Plak NIET de volledige https://github.com/...-link.",
     "help.token": "Een fine-grained token met 'Contents: Read and write' op enkel de publicatierepo. Het wordt in de OS-sleutelbos bewaard, nooit in een bestand.",
@@ -524,6 +556,20 @@ const STRINGS = {
     "manage.done": "Terminé.",
     "manage.created": "Journée créée et disponible dans la liste.",
     "manage.imported": "{n} stations importées.",
+    "imp.badformat": "Ce fichier ne correspond pas à la mise en page requise ; rien n'a été importé.",
+    "imp.missingcols": "Colonne(s) manquante(s)",
+    "imp.foundcols": "Trouvé dans votre fichier",
+    "imp.expected": "Mise en page requise (première ligne = en-têtes)",
+    "imp.col": "Colonne",
+    "imp.alsoaccepted": "Aussi accepté",
+    "imp.example": "Exemple",
+    "imp.required": "requis",
+    "imp.optional": "facultatif",
+    "imp.bandcols": "au moins une colonne de bande",
+    "imp.note.header_first_row": "La première ligne doit contenir les en-têtes de colonne.",
+    "imp.note.order_free": "L'ordre des colonnes n'a pas d'importance.",
+    "imp.note.band_cells_ignored": "Le contenu des colonnes de bande est ignoré — la matrice démarre toujours vide.",
+    "imp.close": "Fermer",
     "manage.adifreport": "Lus {read} — nouveaux {new}, doublons {dup}, hors période {out}, station inconnue {unk}.",
     "manage.syncreport": "Resync terminée : {matched} sur {total} QSO comptent.",
     "manage.error": "Cela n'a pas fonctionné : {e}",
@@ -544,6 +590,8 @@ const STRINGS = {
     "set.udpport": "Port UDP",
     "set.fresh": "Inactif après (secondes sans paquets)",
     "set.strict": "Correspondance stricte des indicatifs (ON4BAF/P ≠ ON4BAF)",
+    "set.showcat": "Afficher la catégorie sous l'indicatif",
+    "help.showcat": "La ligne gris clair sous chaque indicatif dans la matrice (p. ex. \"Open All Band Low Power\"). Désactivez-la pour une matrice compacte affichant plus de bandes. Le filtre par catégorie reste actif.",
     "set.colors": "Couleurs de statut",
     "set.savefd": "Enregistrer les réglages techniques",
     "set.exportfolder": "Dossier d'export (vide = par défaut)",
@@ -554,7 +602,7 @@ const STRINGS = {
     "help.udpport": "Le port UDP vers lequel N1MM diffuse. Par défaut 12060. Ce nombre doit être exactement identique ici et dans les réglages Broadcast Data de N1MM.",
     "help.strict": "DÉSACTIVÉ (recommandé) : ON4BAF/P et ON4BAF comptent comme la même station. ACTIVÉ : seul l'indicatif exact compte, donc /P, /M ou un préfixe font une station différente. Modifier recalcule toute la matrice.",
     "help.fresh": "Après combien de secondes de silence un PC source est affiché comme INACTIF (problème possible de câble/réseau). Par défaut 120.",
-    "help.excel": "La liste des participants est reconnue par les EN-TÊTES DE COLONNE (première ligne), pas par l'ordre — les colonnes peuvent donc être dans n'importe quel ordre. En-têtes reconnus : Callsign (Call / Callsign / Roepnaam) — requis ; Nom ; Club ; Catégorie ; Section ; Remarque. Les colonnes de bande (p.ex. 40m, 80m) sont détectées automatiquement. Les colonnes supplémentaires sont ignorées. Seule une colonne d'indicatif est obligatoire.",
+    "help.excel": "La liste des participants doit contenir ces en-têtes dans la première ligne : Call (Callsign / Roepnaam), categorie, sectie, et au moins une colonne de bande (40M, 80M, 160M ...). L'ordre est libre et des colonnes supplémentaires (Nummer, Naam, Club, Opm.) sont permises. Un fichier auquel il manque une colonne obligatoire est refusé entièrement, avec la mise en page requise à l'écran. Le contenu des colonnes de bande est ignoré — la matrice démarre toujours vide.",
     "help.adifbtn": "Récupère le journal COMPLET de N1MM. Dans N1MM : File > Export > Export to ADIF, puis importez ce fichier .adi ici. Les QSO déjà connus sont ignorés, vous pouvez donc le faire aussi souvent que voulu — aussi pour rattraper après que le tracker a été éteint.",
     "help.repo": "Le dépôt GitHub sous forme owner/nom, p.ex. ON3VZ/velddag-live. NE collez PAS le lien https://github.com/... complet.",
     "help.token": "Un token fine-grained avec 'Contents: Read and write' sur uniquement le dépôt de publication. Il est stocké dans le trousseau de l'OS, jamais dans un fichier.",
@@ -947,6 +995,47 @@ function renderLegend() {
 
 /* ---- view 1: matrix ---- */
 
+/* ---- fase 26: import format error box ---- */
+
+function formatColumnRow(entry, requirement) {
+  return "<tr><td class=\"mono\">" + esc(entry.header) + "</td><td>" +
+    esc(requirement) + '</td><td class="mono">' +
+    esc((entry.synonyms || []).join(" / ")) + '</td><td class="mono">' +
+    esc(entry.example || "") + "</td></tr>";
+}
+
+function formatErrorHtml(info) {
+  const spec = info.expected;
+  let html = '<div class="msg warn"><b>' + esc(t("imp.badformat")) + "</b><br>" +
+    esc(t("imp.missingcols")) + ': <span class="mono">' +
+    esc(info.missing_columns.join(", ")) + "</span>";
+  if (info.found_headers && info.found_headers.length) {
+    html += "<br>" + esc(t("imp.foundcols")) + ': <span class="mono">' +
+      esc(info.found_headers.join(", ")) + "</span>";
+  }
+  html += "</div>";
+
+  html += '<div class="fmtspec"><h4>' + esc(t("imp.expected")) + "</h4>" +
+    '<table class="list"><thead><tr><th>' + esc(t("imp.col")) + "</th><th></th><th>" +
+    esc(t("imp.alsoaccepted")) + "</th><th>" + esc(t("imp.example")) +
+    "</th></tr></thead><tbody>";
+  for (const entry of spec.required) {
+    html += formatColumnRow(entry, t("imp.required"));
+  }
+  html += formatColumnRow(spec.required_bands, t("imp.bandcols"));
+  for (const entry of spec.optional) {
+    html += formatColumnRow(entry, t("imp.optional"));
+  }
+  html += "</tbody></table><ul>";
+  for (const note of spec.notes) {
+    html += "<li>" + esc(t("imp.note." + note)) + "</li>";
+  }
+  html += "</ul></div>" +
+    '<div class="row-btns"><button class="btn secondary" id="imp-fmt-close">' +
+    esc(t("imp.close")) + "</button></div>";
+  return html;
+}
+
 function renderMatrix() {
   const snap = state.snapshot;
   const stations = visibleStations();
@@ -958,9 +1047,20 @@ function renderMatrix() {
     return wrap;
   }
 
+  // The section column is only rendered when at least one station in the
+  // snapshot actually has a section — a CSV with only callsigns should not
+  // get a permanently empty frozen column.
+  const showSection = snap.stations.some((s) => s.section);
+  // Display preference from the app settings; absent in old snapshots -> on.
+  const showCategory = snap.show_station_category !== false;
+
   const perBand = snap.stats.per_band;
-  let html = '<table class="matrix"><thead><tr>' +
+  let html = '<table class="matrix' + (showSection ? "" : " no-sec") +
+    '"><thead><tr>' +
     '<th class="col-call">' + esc(t("col.callsign")) + "</th>";
+  if (showSection) {
+    html += '<th class="col-sec">' + esc(t("col.section")) + "</th>";
+  }
   for (const band of bands) {
     const stats = perBand[band] || { worked: 0, total: 0 };
     const pct = stats.total ? Math.round((100 * stats.worked) / stats.total) : 0;
@@ -971,7 +1071,14 @@ function renderMatrix() {
 
   for (const station of stations) {
     html += '<tr><th class="col-call mono">' + esc(station.callsign) +
-      '<span class="cat">' + esc(station.category || "") + "</span></th>";
+      (showCategory
+        ? '<span class="cat">' + esc(station.category || "") + "</span>"
+        : "") + "</th>";
+    if (showSection) {
+      const sec = station.section || "";
+      html += '<td class="col-sec mono" title="' + esc(sec) + '">' +
+        esc(sec) + "</td>";
+    }
     for (const band of bands) {
       const cell = station.cells[band] || { status: "not_worked" };
       html += "<td>" + cellButton(station, band, cell) + "</td>";
@@ -1555,7 +1662,7 @@ let managePublish = { enabled: false, repo: "", branch: "main", path: "",
                       interval: "0", includePrivate: false,
                       tokenConfigured: false, pagesUrl: "" };
 let manageSettings = { udpHost: "", udpPort: "", fresh: "", strict: false,
-                       exportFolder: "", language: "en" };
+                       exportFolder: "", language: "en", showCategory: true };
 
 async function loadManageSettings() {
   try {
@@ -1563,6 +1670,7 @@ async function loadManageSettings() {
     const snap = state.snapshot;
     manageSettings.exportFolder = data.settings.export_folder || "";
     manageSettings.language = data.settings.ui_language || "nl";
+    manageSettings.showCategory = data.settings.show_station_category !== false;
   } catch (err) { /* defaults blijven */ }
   try {
     const pub = await (await fetch("/api/publish/status")).json();
@@ -1588,6 +1696,7 @@ async function loadManageSettings() {
   }
 }
 let pendingImport = null; // {filename, content_b64, missing:[]}
+let importFormatError = null; // fase 26: {filename, missing_columns, found_headers, expected}
 
 async function openManage() {
   $("manage-drawer").hidden = false;
@@ -1600,6 +1709,7 @@ function closeManage() {
   $("drawer-backdrop").hidden = true;
   manageMsg = null;
   pendingImport = null;
+  importFormatError = null;
 }
 
 async function renderManage() {
@@ -1669,6 +1779,9 @@ async function renderManage() {
   }
 
   html += "<h3>" + esc(t("manage.import")) + "</h3>";
+  if (importFormatError) {
+    html += formatErrorHtml(importFormatError);
+  }
   if (pendingImport) {
     html += '<div class="msg warn">' + esc(t("manage.importmissing")) +
       '<br><span class="mono">' + pendingImport.missing.map(esc).join(", ") + "</span></div>" +
@@ -1706,6 +1819,9 @@ async function renderManage() {
       '<input type="text" id="set-fresh" class="mono" value="' + esc(manageSettings.fresh) + '">' +
       '<label><input type="checkbox" id="set-strict"' +
       (manageSettings.strict ? " checked" : "") + "> " + esc(t("set.strict")) + " " + help("help.strict") + "</label>" +
+      '<label><input type="checkbox" id="set-showcat"' +
+      (manageSettings.showCategory ? " checked" : "") + "> " +
+      esc(t("set.showcat")) + " " + help("help.showcat") + "</label>" +
       '<label>' + esc(t("set.colors")) + '</label><div class="bandboxes">';
     for (const status of Object.keys(snap.legend)) {
       html += '<label><input type="color" class="set-color" data-status="' + esc(status) +
@@ -1889,6 +2005,7 @@ document.addEventListener("click", async (event) => {
     return;
   }
   if (target.id === "imp-cancel") { pendingImport = null; renderManage(); return; }
+  if (target.id === "imp-fmt-close") { importFormatError = null; renderManage(); return; }
   if (target.id === "set-save") {
     const colors = {};
     document.querySelectorAll(".set-color").forEach((el) => {
@@ -1898,6 +2015,7 @@ document.addEventListener("click", async (event) => {
       await api("/api/settings", {
         ui_language: $("set-lang").value,
         export_folder: $("set-export").value,
+        show_station_category: $("set-showcat").checked,
       });
       return api("/api/fieldday/update", {
         n1mm_udp_host: $("set-udphost").value,
@@ -2024,7 +2142,13 @@ document.addEventListener("change", async (event) => {
     try {
       const result = await api("/api/import-stations",
         { filename: file.name, content_b64: content, confirm_removals: false });
-      if (result.needs_confirmation) {
+      if (result.format_error) {
+        importFormatError = result.format_error;
+        pendingImport = null;
+        manageMsg = { kind: "warn", text: t("imp.badformat") };
+        renderManage();
+      } else if (result.needs_confirmation) {
+        importFormatError = null;
         pendingImport = { filename: file.name, content_b64: content,
                           missing: result.missing_stations };
         renderManage();

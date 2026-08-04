@@ -278,11 +278,32 @@ class TestUploads:
         import base64
         return base64.b64encode(open(path, "rb").read()).decode()
 
+    def test_wrong_layout_is_refused_with_expected_format(self, running_app, tmp_path):
+        """Fase 26: verkeerd formaat → niets geïmporteerd, indeling teruggegeven."""
+        _, repo, _, http_port = running_app
+        before = len(repo.load_stations())
+        csv = tmp_path / "fout.csv"
+        csv.write_text("Roepnaam\nON4BAF/P\n", encoding="utf-8")
+        status, result = http_post(http_port, "/api/import-stations", {
+            "filename": "fout.csv", "content_b64": self._b64(csv),
+            "confirm_removals": False,
+        })
+        assert status == 200
+        assert "format_error" in result
+        assert "categorie" in result["format_error"]["missing_columns"]
+        assert result["format_error"]["expected"]["required"]
+        assert result["format_error"]["found_headers"] == ["Roepnaam"]
+        # Niets aangeraakt: de bestaande lijst blijft ongewijzigd.
+        assert len(repo.load_stations()) == before
+
     def test_station_upload_with_reimport_flow(self, running_app, tmp_path):
         state, repo, _, http_port = running_app
         # Nieuwe lijst mist ON4CDZ → eerst waarschuwing (§7.3)
         csv = tmp_path / "list.csv"
-        csv.write_text("Call;sectie\nON4BAF/P;RST\nOT5X/P;CRD\n", encoding="utf-8")
+        csv.write_text(
+            "Call;categorie;sectie;40M\nON4BAF/P;Open;RST;\nOT5X/P;Open;CRD;\n",
+            encoding="utf-8",
+        )
         status, result = http_post(http_port, "/api/import-stations", {
             "filename": "list.csv", "content_b64": self._b64(csv),
             "confirm_removals": False,
@@ -336,6 +357,27 @@ class TestSettings:
         _, snapshot = http_get(http_port, "/snapshot.json")
         assert snapshot["ui_language"] == "nl"
         assert "tech" in snapshot
+
+    def test_show_station_category_flows_to_snapshot(self, running_app, tmp_path,
+                                                     monkeypatch):
+        """Fase 25: de weergavevoorkeur reist mee in het snapshot."""
+        monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg2"))
+        _, _, _, http_port = running_app
+        # Default: aan.
+        _, snapshot = http_get(http_port, "/snapshot.json")
+        assert snapshot["show_station_category"] is True
+
+        status, result = http_post(http_port, "/api/settings",
+                                   {"show_station_category": False})
+        assert status == 200
+        assert result["settings"]["show_station_category"] is False
+        _, snapshot = http_get(http_port, "/snapshot.json")
+        assert snapshot["show_station_category"] is False
+
+        # Weer aan: geen restwaarde blijven hangen in de cache.
+        http_post(http_port, "/api/settings", {"show_station_category": True})
+        _, snapshot = http_get(http_port, "/snapshot.json")
+        assert snapshot["show_station_category"] is True
 
     def test_invalid_language_400(self, running_app):
         _, _, _, http_port = running_app

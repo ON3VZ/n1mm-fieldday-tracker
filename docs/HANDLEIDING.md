@@ -258,15 +258,29 @@ station** en een **kopregel** met kolomnamen. De bestaande deelnemerslijst
 | Kolomnaam (kop) | Verplicht? | Betekenis |
 |---|---|---|
 | `Call` (of `Callsign`, `Roepnaam`) | **Ja** | De roepnaam, bv. `ON4BAF/P` |
-| `categorie` (of `Category`) | Nee | Deelnamecategorie, bv. `Restricted 12h` |
-| `sectie` (of `Section`) | Nee | UBA-sectie, bv. `RST` |
+| `categorie` (of `Category`) | **Ja** | Deelnamecategorie, bv. `Restricted 12h` |
+| `sectie` (of `Section`) | **Ja** | UBA-sectie, bv. `RST` |
+| Bandkolommen: `40M`, `80M`, `160M`, … | **Ja**, minstens één | Zie hieronder |
 | `Opm.` (of `Opmerking`, `Remarks`) | Nee | Vrije opmerking |
 | `Naam` (of `Name`) | Nee | Naam operator/station |
 | `Club` | Nee | Clubnaam |
-| Bandkolommen: `40M`, `80M`, `160M`, … | Nee | Zie hieronder |
 | Andere kolommen (bv. `Nummer`) | — | Worden genegeerd |
 
-Hoofdletters, kleine letters en extra spaties in de kopjes maken niet uit.
+Hoofdletters, kleine letters en extra spaties in de kopjes maken niet uit,
+en de **volgorde van de kolommen maakt niet uit**.
+
+### Vast formaat: wat als het bestand niet klopt?
+
+Ontbreekt één van de verplichte kolommen, dan wordt het bestand **in zijn
+geheel geweigerd** — er wordt niets half geïmporteerd en je bestaande lijst
+blijft ongewijzigd. Op het scherm verschijnt dan een kader met:
+
+- welke kolom(men) ontbreken
+- welke kopjes er wél in jouw bestand stonden
+- de volledige vereiste indeling, met voorbeeldwaarden
+
+Zet de ontbrekende kolom erbij (een lege kolom met het juiste kopje volstaat
+om aan het formaat te voldoen) en importeer opnieuw.
 
 ### Bandkolommen
 
@@ -287,7 +301,8 @@ per probleemrij het rijnummer en de reden, bv.:
 
 ### CSV-formaat
 
-Zelfde kolomlogica; enkel de roepnaamkolom is verplicht. Zowel komma's als
+Zelfde kolomlogica én dezelfde verplichte kolommen als Excel — een CSV is
+geen achterpoortje om de formaatcontrole te omzeilen. Zowel komma's als
 puntkomma's als scheidingsteken worden automatisch herkend (een CSV die je
 uit Belgische Excel exporteert, gebruikt puntkomma's — dat werkt gewoon).
 

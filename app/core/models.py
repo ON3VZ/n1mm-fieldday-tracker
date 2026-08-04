@@ -467,6 +467,8 @@ class AppSettings:
     freshness_threshold_seconds: int = DEFAULT_FRESHNESS_THRESHOLD_SECONDS
     auto_sync_enabled: bool = True
     strict_callsign_matching: bool = False
+    # Show the light-grey category line under each callsign in the matrix.
+    show_station_category: bool = True
     default_selected_bands: list[str] = field(
         default_factory=lambda: list(DEFAULT_SELECTED_BANDS)
     )
@@ -494,6 +496,7 @@ class AppSettings:
             "freshness_threshold_seconds": self.freshness_threshold_seconds,
             "auto_sync_enabled": self.auto_sync_enabled,
             "strict_callsign_matching": self.strict_callsign_matching,
+            "show_station_category": self.show_station_category,
             "default_selected_bands": list(self.default_selected_bands),
             "status_colors": dict(self.status_colors),
             "export_folder": self.export_folder,
@@ -513,6 +516,7 @@ class AppSettings:
             ),
             auto_sync_enabled=bool(data.get("auto_sync_enabled", True)),
             strict_callsign_matching=bool(data.get("strict_callsign_matching", False)),
+            show_station_category=bool(data.get("show_station_category", True)),
             default_selected_bands=list(
                 data.get("default_selected_bands") or DEFAULT_SELECTED_BANDS
             ),

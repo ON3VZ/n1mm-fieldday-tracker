@@ -316,3 +316,17 @@ class TestStatusPriority:
 
     def test_status_values_are_snake_case_strings(self):
         assert Status.WORKED_BY_N1MM == "worked_by_n1mm"
+
+
+def test_app_settings_show_station_category_roundtrip():
+    """Fase 25: nieuwe weergavevoorkeur, default aan en achterwaarts compatibel."""
+    from app.core.models import AppSettings
+
+    assert AppSettings().show_station_category is True
+    # Een settingsbestand van vóór deze versie kent de sleutel niet.
+    assert AppSettings.from_dict({"ui_language": "nl"}).show_station_category is True
+
+    settings = AppSettings(show_station_category=False)
+    data = settings.to_dict()
+    assert data["show_station_category"] is False
+    assert AppSettings.from_dict(data).show_station_category is False

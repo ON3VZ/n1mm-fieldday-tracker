@@ -19,6 +19,10 @@
   --ok: #22C55E;
   --warn: #FF6B35;         /* WLD-oranje */
   --cell-size: 52px;
+  /* Frozen matrix columns. --callcol-w doubles as the sticky left offset of
+     the section column, so the callsign column width is fixed here. */
+  --callcol-w: 10rem;
+  --seccol-w: 4.5rem;
   --mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
   font-size: 17px;         /* tablet baseline: everything scales from here */
 }
@@ -173,16 +177,32 @@ table.matrix { border-collapse: separate; border-spacing: 0; width: 100%; }
   font-size: 0.95rem;
   text-align: center;
 }
-.matrix thead th.col-call { text-align: left; z-index: 4; }
+.matrix thead th.col-call,
+.matrix thead th.col-sec { text-align: left; z-index: 4; }
 
+/* Two frozen columns: the sticky left offset of the section column must
+   equal the width of the callsign column, so both widths are fixed here in
+   one place (--callcol-w / --seccol-w) instead of being content-driven. */
 .matrix .col-call {
   position: sticky; left: 0; z-index: 2;
   background: var(--paper);
-  min-width: 9.5rem;
+  width: var(--callcol-w); min-width: var(--callcol-w);
   padding: 0.35rem 0.6rem;
   text-align: left;
-  border-right: 2px solid var(--line);
+  border-right: 1px solid var(--line-soft);
 }
+.matrix .col-sec {
+  position: sticky; left: var(--callcol-w); z-index: 2;
+  background: var(--paper);
+  width: var(--seccol-w); min-width: var(--seccol-w); max-width: var(--seccol-w);
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+  border-right: 2px solid var(--line);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.matrix tbody .col-sec { font-size: 0.85rem; color: var(--ink-soft); }
+/* Without a section column the callsign column carries the divider. */
+.matrix.no-sec .col-call { border-right: 2px solid var(--line); }
 .matrix tbody .col-call { font-weight: 600; }
 .matrix tbody .col-call .cat {
   display: block; font-size: 0.72rem; font-weight: 400;
@@ -287,7 +307,8 @@ table.list { border-collapse: collapse; width: 100%; }
 }
 
 @media (max-width: 700px) {
-  :root { --cell-size: 46px; font-size: 16px; }
+  :root { --cell-size: 46px; font-size: 16px;
+          --callcol-w: 8.5rem; --seccol-w: 3.6rem; }
   .topbar { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
 }
 
@@ -432,3 +453,18 @@ details.acc > summary:hover { color: var(--teal); }
 
 .app-version { font-family: var(--mono, monospace); color: var(--ink-soft); margin: 0.2rem 0 0.5rem; }
 #update-status { margin-top: 0.5rem; }
+
+/* ---------- import format error box (fase 26) ---------- */
+
+.fmtspec {
+  border: 2px solid var(--warn);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  margin: 0.6rem 0;
+  background: var(--paper-soft);
+}
+.fmtspec h4 { margin: 0 0 0.4rem; font-size: 1rem; }
+.fmtspec table.list { margin-bottom: 0.5rem; }
+.fmtspec td, .fmtspec th { padding: 0.25rem 0.4rem; font-size: 0.9rem; }
+.fmtspec ul { margin: 0; padding-left: 1.1rem; color: var(--ink-soft); }
+.fmtspec li { font-size: 0.9rem; }
