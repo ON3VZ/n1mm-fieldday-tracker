@@ -178,6 +178,15 @@ cd *-linux-x86_64
      <code>./install.sh --uninstall</code>.</p>
 
   <h3>Vanaf de broncode (elk platform)</h3>
+  <div class="note">
+    <b>Zip uitgepakt en de map heet anders dan verwacht?</b> GitHub's
+    "Download ZIP" pakt de broncode altijd in een extra map met de
+    branch- of versienaam erachter, bv.
+    <code>n1mm-fieldday-tracker-main</code> of
+    <code>n1mm-fieldday-tracker-1.2.0</code>. Open je terminal in díé map —
+    herken je aan het bestand <code>requirements.txt</code> dat er direct in
+    staat — en voer de commando's hieronder daar uit.
+  </div>
   <pre><code>python -m venv .venv
 source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
