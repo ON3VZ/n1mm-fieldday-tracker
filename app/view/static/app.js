@@ -20,7 +20,7 @@ const STRINGS = {
     "live.updated": "Live — updated {s} ago",
     "live.stale": "No data — last update {s}s ago",
     "live.readonly": "Public view — updated {s} ago",
-    "view.matrix": "Matrix",
+    "view.matrix": "Table",
     "view.towork": "Still to work",
     "view.band": "Per band",
     "view.station": "Per station",
@@ -185,6 +185,23 @@ const STRINGS = {
     "addst.remarks": "Remarks",
     "addst.save": "Add station",
     "addst.added": "Station added.",
+    "addst.name": "Name",
+    "addst.club": "Club",
+    "addst.catpick": "— choose —",
+    "addst.catother": "Other… (type it yourself)",
+    "set.categories": "Categories for the drop-down (one per line)",
+    "help.categories": "These are the choices offered when you add or edit a station. Typing a category by hand invites typos, and a typo quietly splits the per-category statistics in two. Add a line here when a new category appears; existing stations keep whatever they already have.",
+    "stlist.title": "Edit participant list",
+    "stlist.hint": "Correct a callsign, category, section or remark of a station already in the list. Correcting a callsign immediately picks up QSOs that were ignored until now because the callsign did not match.",
+    "stlist.filter": "Search in the list…",
+    "stlist.count": "{n} stations",
+    "stlist.none": "No stations match.",
+    "stlist.empty": "The participant list is still empty. Import the Excel file or add a station manually.",
+    "stlist.edit": "Edit",
+    "stlist.save": "Save changes",
+    "stlist.cancel": "Cancel",
+    "stlist.saved": "Station updated.",
+    "stlist.nocat": "(no category)",
     "close.title": "Close / reopen field day",
     "close.button": "Close field day",
     "close.confirm": "Close this field day? Viewing stays possible, but no new QSOs, imports or manual changes are accepted until you reopen it.",
@@ -235,7 +252,7 @@ const STRINGS = {
     "live.updated": "Live — bijgewerkt {s} geleden",
     "live.stale": "Geen data — laatste update {s}s geleden",
     "live.readonly": "Publieke weergave — bijgewerkt {s} geleden",
-    "view.matrix": "Matrix",
+    "view.matrix": "Tabel",
     "view.towork": "Nog te werken",
     "view.band": "Per band",
     "view.station": "Per station",
@@ -400,6 +417,23 @@ const STRINGS = {
     "addst.remarks": "Opmerking",
     "addst.save": "Station toevoegen",
     "addst.added": "Station toegevoegd.",
+    "addst.name": "Naam",
+    "addst.club": "Club",
+    "addst.catpick": "— kies —",
+    "addst.catother": "Andere… (zelf intypen)",
+    "set.categories": "Categorieën voor de keuzelijst (één per lijn)",
+    "help.categories": "Dit zijn de keuzes die je krijgt bij het toevoegen of bewerken van een station. Een categorie met de hand intikken nodigt uit tot tikfouten, en zo'n tikfout splitst de statistiek per categorie stilletjes in twee. Voeg hier een lijn toe zodra er een nieuwe categorie bijkomt; bestaande stations behouden wat ze al hadden.",
+    "stlist.title": "Deelnemerslijst bewerken",
+    "stlist.hint": "Corrigeer roepnaam, categorie, sectie of opmerking van een station dat al in de lijst staat. Een roepnaam corrigeren pikt meteen de QSO's op die tot nu toe genegeerd werden omdat de roepnaam niet overeenkwam.",
+    "stlist.filter": "Zoek in de lijst…",
+    "stlist.count": "{n} stations",
+    "stlist.none": "Geen stations gevonden.",
+    "stlist.empty": "De deelnemerslijst is nog leeg. Importeer het Excel-bestand of voeg een station handmatig toe.",
+    "stlist.edit": "Bewerken",
+    "stlist.save": "Wijzigingen opslaan",
+    "stlist.cancel": "Annuleren",
+    "stlist.saved": "Station bijgewerkt.",
+    "stlist.nocat": "(geen categorie)",
     "close.title": "Velddag afsluiten / heropenen",
     "close.button": "Velddag afsluiten",
     "close.confirm": "Deze velddag afsluiten? Bekijken blijft mogelijk, maar er worden geen nieuwe QSO's, imports of handmatige wijzigingen aanvaard tot je ze heropent.",
@@ -450,7 +484,7 @@ const STRINGS = {
     "live.updated": "En direct — mis à jour il y a {s}",
     "live.stale": "Aucune donnée — dernière mise à jour il y a {s}s",
     "live.readonly": "Vue publique — mise à jour il y a {s}",
-    "view.matrix": "Matrice",
+    "view.matrix": "Tableau",
     "view.towork": "À travailler",
     "view.band": "Par bande",
     "view.station": "Par station",
@@ -615,6 +649,23 @@ const STRINGS = {
     "addst.remarks": "Remarque",
     "addst.save": "Ajouter la station",
     "addst.added": "Station ajoutée.",
+    "addst.name": "Nom",
+    "addst.club": "Club",
+    "addst.catpick": "— choisir —",
+    "addst.catother": "Autre… (à saisir)",
+    "set.categories": "Catégories pour la liste déroulante (une par ligne)",
+    "help.categories": "Ce sont les choix proposés lors de l'ajout ou de la modification d'une station. Saisir une catégorie à la main invite les fautes de frappe, et une faute scinde discrètement les statistiques par catégorie. Ajoutez une ligne ici dès qu'une nouvelle catégorie apparaît ; les stations existantes gardent ce qu'elles avaient.",
+    "stlist.title": "Modifier la liste des participants",
+    "stlist.hint": "Corrigez l'indicatif, la catégorie, la section ou la remarque d'une station déjà dans la liste. Corriger un indicatif récupère aussitôt les QSO ignorés jusqu'ici faute de correspondance.",
+    "stlist.filter": "Rechercher dans la liste…",
+    "stlist.count": "{n} stations",
+    "stlist.none": "Aucune station trouvée.",
+    "stlist.empty": "La liste des participants est encore vide. Importez le fichier Excel ou ajoutez une station manuellement.",
+    "stlist.edit": "Modifier",
+    "stlist.save": "Enregistrer",
+    "stlist.cancel": "Annuler",
+    "stlist.saved": "Station mise à jour.",
+    "stlist.nocat": "(sans catégorie)",
     "close.title": "Fermer / rouvrir la journée",
     "close.button": "Fermer la journée",
     "close.confirm": "Fermer cette journée ? La consultation reste possible, mais aucun nouveau QSO, import ou changement manuel n'est accepté jusqu'à réouverture.",
@@ -858,6 +909,10 @@ function render() {
   $("fd-callsign").textContent = snap.field_day.event_callsign;
   $("fd-period").textContent =
     fmtUtc(snap.field_day.start_utc) + " → " + fmtUtc(snap.field_day.end_utc) + " UTC";
+  // Version travels in the snapshot, so the published page shows the version
+  // that generated it rather than nothing at all.
+  const versionEl = $("app-version");
+  if (versionEl) versionEl.textContent = snap.app_version ? "v" + snap.app_version : "";
 
   renderLivebar();
   const manageBtn = $("manage-open");
@@ -1510,6 +1565,13 @@ const MANUAL_HTML =
   "are not received automatically. To pull in the full log: in N1MM " +
   "<b>File &gt; Export &gt; Export to ADIF</b>, then in the tracker " +
   "<b>Manage &gt; ADIF import</b>. Known QSOs are skipped, so nothing doubles.</p>" +
+  "<h3>Correcting the participant list</h3>" +
+  "<p><b>Manage &gt; Edit participant list</b> lets you fix a callsign, " +
+  "category, section or remark without re-importing the Excel. Correcting a " +
+  "misspelled callsign immediately picks up the QSOs that were ignored until " +
+  "then, and any manual statuses move along with it. Categories come from a " +
+  "drop-down (editable under Settings) so a typo cannot split your " +
+  "per-category statistics in two.</p>" +
   "<h3>Multiple field days</h3>" +
   "<p>There is always exactly one <b>active</b> field day. N1MM data is always " +
   "recorded into that active field day. A closed field day ignores incoming QSOs.</p>" +
@@ -1662,7 +1724,12 @@ let managePublish = { enabled: false, repo: "", branch: "main", path: "",
                       interval: "0", includePrivate: false,
                       tokenConfigured: false, pagesUrl: "" };
 let manageSettings = { udpHost: "", udpPort: "", fresh: "", strict: false,
-                       exportFolder: "", language: "en", showCategory: true };
+                       exportFolder: "", language: "en", showCategory: true,
+                       categories: [] };
+// Participant list for the edit panel, plus which row is open for editing.
+let manageStations = [];
+let editingStation = null; // normalized callsign of the row being edited
+let stationFilter = "";
 
 async function loadManageSettings() {
   try {
@@ -1671,7 +1738,12 @@ async function loadManageSettings() {
     manageSettings.exportFolder = data.settings.export_folder || "";
     manageSettings.language = data.settings.ui_language || "nl";
     manageSettings.showCategory = data.settings.show_station_category !== false;
+    manageSettings.categories = data.settings.station_categories || [];
   } catch (err) { /* defaults blijven */ }
+  try {
+    const data = await (await fetch("/api/stations")).json();
+    manageStations = data.stations || [];
+  } catch (err) { manageStations = []; }
   try {
     const pub = await (await fetch("/api/publish/status")).json();
     managePublish.enabled = pub.settings.enabled;
@@ -1710,6 +1782,129 @@ function closeManage() {
   manageMsg = null;
   pendingImport = null;
   importFormatError = null;
+}
+
+/* ------------------------------------------- category picker (§7.1) */
+
+function categoryOptions() {
+  // The configured list, plus any category already in use that is not in it.
+  // An Excel import may carry a category nobody added to the settings yet;
+  // dropping it from the picker would make an edit silently blank the field.
+  const known = manageSettings.categories.slice();
+  const seen = new Set(known.map((c) => c.toLowerCase()));
+  for (const station of manageStations) {
+    const category = (station.category || "").trim();
+    if (category && !seen.has(category.toLowerCase())) {
+      seen.add(category.toLowerCase());
+      known.push(category);
+    }
+  }
+  return known;
+}
+
+function categoryPicker(id, current) {
+  // A drop-down with an escape hatch: "Other…" reveals a free-text field, so
+  // a category that does not exist yet never blocks adding a station.
+  const options = categoryOptions();
+  const value = (current || "").trim();
+  const listed = options.some((c) => c.toLowerCase() === value.toLowerCase());
+  const other = value !== "" && !listed;
+  let html = '<select id="' + id + '" class="cat-select">' +
+    '<option value="">' + esc(t("addst.catpick")) + "</option>";
+  for (const option of options) {
+    const selected = listed && option.toLowerCase() === value.toLowerCase();
+    html += '<option value="' + esc(option) + '"' + (selected ? " selected" : "") +
+      ">" + esc(option) + "</option>";
+  }
+  html += '<option value="__other__"' + (other ? " selected" : "") + ">" +
+    esc(t("addst.catother")) + "</option></select>" +
+    '<input type="text" id="' + id + '-other" class="cat-other"' +
+    (other ? "" : " hidden") + ' value="' + esc(other ? value : "") + '">';
+  return html;
+}
+
+function categoryValue(id) {
+  const select = $(id);
+  if (!select) return "";
+  if (select.value !== "__other__") return select.value;
+  const free = $(id + "-other");
+  return free ? free.value.trim() : "";
+}
+
+/* --------------------------------------- participant list editor (§7.2) */
+
+function stationListHtml() {
+  let html = "<h3>" + esc(t("stlist.title")) + "</h3>" +
+    '<p class="hint">' + esc(t("stlist.hint")) + "</p>";
+  if (!manageStations.length) {
+    return html + '<div class="msg warn">' + esc(t("stlist.empty")) + "</div>";
+  }
+  html += '<input type="search" id="st-filter" class="mono" placeholder="' +
+    esc(t("stlist.filter")) + '" value="' + esc(stationFilter) + '">' +
+    '<p class="hint" id="st-count">' +
+    esc(t("stlist.count", { n: manageStations.length })) + "</p>" +
+    '<ul class="st-list" id="st-list">';
+  for (const station of manageStations) {
+    const key = station.normalized_callsign;
+    const haystack = [station.original_callsign, station.category,
+                      station.section, station.name].join(" ").toLowerCase();
+    const row = '<li class="st-row" data-search="' + esc(haystack) + '"';
+    if (editingStation === key) {
+      html += row + ' data-editing="1">' +
+        "<label>" + esc(t("addst.call")) + "</label>" +
+        '<input type="text" id="se-call" class="mono" value="' +
+        esc(station.original_callsign) + '">' +
+        "<label>" + esc(t("addst.name")) + "</label>" +
+        '<input type="text" id="se-name" value="' + esc(station.name || "") + '">' +
+        "<label>" + esc(t("addst.club")) + "</label>" +
+        '<input type="text" id="se-club" value="' + esc(station.club || "") + '">' +
+        "<label>" + esc(t("addst.category")) + "</label>" +
+        categoryPicker("se-cat", station.category) +
+        "<label>" + esc(t("addst.section")) + "</label>" +
+        '<input type="text" id="se-sec" value="' + esc(station.section || "") + '">' +
+        "<label>" + esc(t("addst.remarks")) + "</label>" +
+        '<input type="text" id="se-rem" value="' + esc(station.remarks || "") + '">' +
+        '<div class="row-btns">' +
+        '<button class="btn" id="se-save" data-stkey="' + esc(key) + '">' +
+        esc(t("stlist.save")) + "</button>" +
+        '<button class="btn secondary" id="se-cancel">' +
+        esc(t("stlist.cancel")) + "</button>" +
+        '<button class="btn danger" data-rmstation="' + esc(key) +
+        '" data-name="' + esc(station.original_callsign) + '">' +
+        esc(t("rmst.button")) + "</button></div></li>";
+    } else {
+      html += row + '><span class="mono">' + esc(station.original_callsign) +
+        "</span>" + '<span class="st-meta">' +
+        esc(station.category || t("stlist.nocat")) +
+        (station.section ? " · " + esc(station.section) : "") + "</span>" +
+        '<button class="btn secondary" data-stedit="' + esc(key) + '">' +
+        esc(t("stlist.edit")) + "</button></li>";
+    }
+  }
+  return html + "</ul>";
+}
+
+function applyStationFilter() {
+  // Filter in the DOM instead of re-rendering: re-rendering on every
+  // keystroke would drop focus out of the search box mid-word.
+  const needle = stationFilter.trim().toLowerCase();
+  let visible = 0;
+  document.querySelectorAll("#st-list .st-row").forEach((row) => {
+    const hit = !needle || (row.dataset.search || "").includes(needle);
+    row.hidden = !hit;
+    if (hit) visible += 1;
+  });
+  const counter = $("st-count");
+  if (counter) {
+    counter.textContent = visible
+      ? t("stlist.count", { n: visible })
+      : t("stlist.none");
+  }
+}
+
+async function reloadManagePanel() {
+  await loadManageSettings();
+  await renderManage();
 }
 
 async function renderManage() {
@@ -1831,17 +2026,22 @@ async function renderManage() {
     html += '</div>' +
       '<label>' + esc(t("set.exportfolder")) + '</label>' +
       '<input type="text" id="set-export" value="' + esc(manageSettings.exportFolder) + '">' +
+      '<label>' + esc(t("set.categories")) + " " + help("help.categories") + '</label>' +
+      '<textarea id="set-categories" class="cat-list" rows="8">' +
+      esc(manageSettings.categories.join("\n")) + "</textarea>" +
       '<div class="row-btns"><button class="btn" id="set-save">' +
       esc(t("set.savefd")) + "</button></div>";
   }
 
   html += "<h3>" + esc(t("addst.title")) + "</h3>" +
     '<label>' + esc(t("addst.call")) + '</label><input type="text" id="as-call" class="mono">' +
-    '<label>' + esc(t("addst.category")) + '</label><input type="text" id="as-cat">' +
+    '<label>' + esc(t("addst.category")) + '</label>' + categoryPicker("as-cat", "") +
     '<label>' + esc(t("addst.section")) + '</label><input type="text" id="as-sec">' +
     '<label>' + esc(t("addst.remarks")) + '</label><input type="text" id="as-rem">' +
     '<div class="row-btns"><button class="btn" id="as-save">' +
     esc(t("addst.save")) + "</button></div>";
+
+  html += stationListHtml();
 
   html += "<h3>" + esc(t("export.title")) + "</h3>" +
     '<div class="row-btns">' +
@@ -1901,6 +2101,14 @@ async function renderManage() {
     '<div id="update-status"></div>';
 
   body.innerHTML = accordionize(html);
+  applyStationFilter();
+  // Keep the participant list open across a re-render while editing a row,
+  // otherwise saving would collapse the section the user is working in.
+  if (editingStation) {
+    const editingRow = body.querySelector('.st-row[data-editing="1"]');
+    const section = editingRow ? editingRow.closest("details.acc") : null;
+    if (section) section.open = true;
+  }
 }
 
 async function manageAction(fn, okText) {
@@ -1916,7 +2124,10 @@ async function manageAction(fn, okText) {
   }
   showToast(manageMsg.kind, manageMsg.text);
   await refreshNow();
-  await renderManage();
+  // Re-read settings and the participant list, not just re-render: an action
+  // may well have changed them (a new category, an imported station), and
+  // rendering from stale memory would show the old list back.
+  await reloadManagePanel();
 }
 
 document.addEventListener("click", async (event) => {
@@ -1941,6 +2152,12 @@ document.addEventListener("click", async (event) => {
           $("detail").hidden = true;
           showToast("ok", t("rmst.removed"));
           await refreshNow();
+          // The same button also sits in the participant list editor; if
+          // that panel is open it must lose the row straight away.
+          if (!$("manage-drawer").hidden) {
+            editingStation = null;
+            await reloadManagePanel();
+          }
         } catch (err) {
           showToast("warn", t("manage.error", { e: err.message }));
         }
@@ -2016,6 +2233,7 @@ document.addEventListener("click", async (event) => {
         ui_language: $("set-lang").value,
         export_folder: $("set-export").value,
         show_station_category: $("set-showcat").checked,
+        station_categories: $("set-categories").value.split("\n"),
       });
       return api("/api/fieldday/update", {
         n1mm_udp_host: $("set-udphost").value,
@@ -2036,9 +2254,37 @@ document.addEventListener("click", async (event) => {
   }
   if (target.id === "as-save") {
     manageAction(() => api("/api/station/add", {
-      callsign: $("as-call").value, category: $("as-cat").value,
+      callsign: $("as-call").value, category: categoryValue("as-cat"),
       section: $("as-sec").value, remarks: $("as-rem").value,
     }), () => t("addst.added"));
+    return;
+  }
+  const editStation = target.closest("[data-stedit]");
+  if (editStation) {
+    editingStation = editStation.dataset.stedit;
+    await renderManage();
+    const field = $("se-call");
+    if (field) field.scrollIntoView({ block: "center" });
+    return;
+  }
+  if (target.id === "se-cancel") {
+    editingStation = null;
+    await renderManage();
+    return;
+  }
+  if (target.id === "se-save") {
+    const key = target.dataset.stkey;
+    const payload = {
+      normalized_callsign: key,
+      callsign: $("se-call").value,
+      name: $("se-name").value,
+      club: $("se-club").value,
+      category: categoryValue("se-cat"),
+      section: $("se-sec").value,
+      remarks: $("se-rem").value,
+    };
+    editingStation = null;
+    manageAction(() => api("/api/station/update", payload), () => t("stlist.saved"));
     return;
   }
   if (target.id === "exp-pdf") { window.open("/api/export/pdf", "_blank"); return; }
@@ -2135,7 +2381,23 @@ document.addEventListener("click", async (event) => {
   }
 });
 
+document.addEventListener("input", (event) => {
+  if (event.target.id === "st-filter") {
+    stationFilter = event.target.value;
+    applyStationFilter();
+  }
+});
+
 document.addEventListener("change", async (event) => {
+  // Category drop-down: "Other…" reveals the free-text field next to it.
+  if (event.target.classList && event.target.classList.contains("cat-select")) {
+    const free = $(event.target.id + "-other");
+    if (free) {
+      free.hidden = event.target.value !== "__other__";
+      if (!free.hidden) free.focus();
+    }
+    return;
+  }
   if (event.target.id === "imp-file" && event.target.files.length) {
     const file = event.target.files[0];
     const content = await fileToB64(file);
@@ -2155,7 +2417,7 @@ document.addEventListener("change", async (event) => {
       } else {
         manageMsg = { kind: "ok", text: t("manage.imported", { n: result.imported }) };
         await refreshNow();
-        renderManage();
+        await reloadManagePanel();
       }
     } catch (err) {
       manageMsg = { kind: "warn", text: t("manage.error", { e: err.message }) };
@@ -2189,7 +2451,7 @@ document.addEventListener("change", async (event) => {
       }
       showToast(manageMsg.kind, manageMsg.text);
       await refreshNow();
-      renderManage();
+      await reloadManagePanel();
     } catch (err) {
       manageMsg = { kind: "warn", text: t("manage.error", { e: err.message }) };
       showToast("warn", manageMsg.text);

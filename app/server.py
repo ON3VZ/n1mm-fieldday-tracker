@@ -304,6 +304,87 @@ class AppState:
             self.repo.append_sync_log("station_removed", {"callsign": removed})
         return {"ok": True, "removed": removed}
 
+    def list_stations(self) -> dict[str, Any]:
+        """Full participant list for the edit panel.
+
+        The snapshot only carries the fields the matrix needs; the editor
+        also wants ``name`` and ``club``, so it reads the records directly.
+        """
+        with self._lock:
+            stations = [station.to_dict() for station in self.engine.stations]
+        return {"ok": True, "stations": stations}
+
+    def update_station(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Edit one station in the participant list (§7.2).
+
+        The callsign itself may change. That also changes the normalized
+        callsign, which is the key for both the matrix and manual overrides
+        (BR-04/BR-05), so any overrides on the old key are moved across —
+        otherwise a typo correction would silently orphan them.
+
+        QSOs are not touched: they are re-matched against the participant
+        list on every recompute, so correcting a callsign here immediately
+        picks up QSOs that were previously ignored (BR-03).
+        """
+        from app.core.callsign import normalize_callsign
+
+        self._require_open()
+        normalized = str(payload.get("normalized_callsign", "")).strip()
+        if not normalized:
+            raise ValueError("normalized_callsign is required")
+
+        with self._lock:
+            station = self.engine.station_index.get(normalized)
+            if station is None:
+                raise ValueError(f"station not found: {normalized}")
+
+            new_call = str(payload.get("callsign", station.original_callsign)).strip()
+            if not new_call:
+                raise ValueError("callsign is required")
+            strict = self.engine.fieldday.strict_callsign_matching
+            new_normalized = normalize_callsign(new_call, strict=strict)
+            if new_normalized is None:
+                raise ValueError(f"not a plausible callsign: {new_call}")
+            if (
+                new_normalized != normalized
+                and new_normalized in self.engine.station_index
+            ):
+                clash = self.engine.station_index[new_normalized].original_callsign
+                raise ValueError(
+                    f"{new_call} collides with {clash} "
+                    f"(same station after normalization)"
+                )
+
+            station.original_callsign = new_call
+            station.normalized_callsign = new_normalized
+            for name in ("name", "club", "category", "section", "remarks"):
+                if name in payload:
+                    setattr(station, name, str(payload[name]))
+            station.validate()
+
+            if new_normalized != normalized:
+                self.engine.overrides_by_key = {
+                    ((new_normalized, band) if call == normalized else (call, band)):
+                        self._rekey_override(override, normalized, new_normalized)
+                    for (call, band), override in self.engine.overrides_by_key.items()
+                }
+
+            self.repo.save_stations(self.engine.stations)
+            self.engine.set_stations(self.engine.stations)
+            self.repo.save_overrides(self.engine.current_overrides())
+            self.repo.append_sync_log(
+                "station_updated",
+                {"was": normalized, "now": new_normalized, "callsign": new_call},
+            )
+        return {"ok": True, "normalized": new_normalized}
+
+    @staticmethod
+    def _rekey_override(override, old_normalized: str, new_normalized: str):
+        """Point an override at the renamed station (see update_station)."""
+        if override.normalized_callsign == old_normalized:
+            override.normalized_callsign = new_normalized
+        return override
+
     def close_fieldday(self) -> dict[str, Any]:
         """Close the field day: viewing stays, all changes are blocked."""
         with self._lock:
@@ -903,6 +984,12 @@ class AppState:
             settings.strict_callsign_matching = bool(payload["strict_callsign_matching"])
         if "show_station_category" in payload:
             settings.show_station_category = bool(payload["show_station_category"])
+        if "station_categories" in payload:
+            from app.core.models import normalize_categories
+
+            settings.station_categories = normalize_categories(
+                payload["station_categories"]
+            )
         if "default_selected_bands" in payload:
             settings.default_selected_bands = [
                 str(b) for b in payload["default_selected_bands"]
@@ -1113,6 +1200,9 @@ class TrackerRequestHandler(SimpleHTTPRequestHandler):
         if path == "/api/settings":
             self._send_json(state.get_app_settings())
             return
+        if path == "/api/stations":
+            self._send_json(state.list_stations())
+            return
         if path == "/api/export/csv":
             name, content = state.export_csv()
             self._send_file(content, name, "text/csv; charset=utf-8")
@@ -1175,6 +1265,8 @@ class TrackerRequestHandler(SimpleHTTPRequestHandler):
                 self._send_json(state.update_app_settings(payload))
             elif path == "/api/station/add":
                 self._send_json(state.add_station(payload))
+            elif path == "/api/station/update":
+                self._send_json(state.update_station(payload))
             elif path == "/api/station/remove":
                 result = state.remove_station(payload)
                 self._send_json(result, 200 if result.get("ok") else 400)

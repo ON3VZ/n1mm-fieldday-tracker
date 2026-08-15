@@ -249,3 +249,15 @@ def test_snapshot_carries_show_station_category():
     assert build_snapshot(engine, show_station_category=False)[
         "show_station_category"
     ] is False
+
+
+def test_snapshot_carries_app_version():
+    """Fase 27: de versie reist mee, zodat ook de publieke pagina ze toont."""
+    from app.version import APP_VERSION
+
+    engine = make_engine()
+    snapshot = build_snapshot(engine)
+    assert snapshot["app_version"] == APP_VERSION
+    # Ook in de gepubliceerde, afgeschermde variant.
+    public = build_snapshot(engine, readonly=True, include_private=False)
+    assert public["app_version"] == APP_VERSION

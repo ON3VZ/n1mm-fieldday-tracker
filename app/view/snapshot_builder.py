@@ -23,6 +23,7 @@ from app.core.callsign import normalize_callsign
 from app.core.models import FieldDay, Station, to_iso_z, utc_now
 from app.core.status import Status
 from app.core.sync_engine import CellState, SyncEngine
+from app.version import APP_VERSION
 
 SCHEMA_VERSION = 1
 
@@ -225,6 +226,10 @@ def build_snapshot(
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_at_utc": to_iso_z(utc_now()),
+        # Version of the application that produced this snapshot. Travels
+        # with the document so the published page shows it too — handy when
+        # someone reports a problem against a page you did not generate.
+        "app_version": APP_VERSION,
         "readonly": readonly,
         # Display preference (§4.6): show the light-grey category line under
         # each callsign in the matrix. Travels with the snapshot so the

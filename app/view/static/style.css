@@ -64,7 +64,13 @@ body {
 .logo-sep { width: 2px; height: 28px; background: var(--teal); border-radius: 1px; }
 
 .topbar h1 { font-size: 1.25rem; margin: 0; font-weight: 700; }
-.topbar-sub { display: flex; gap: 1rem; font-size: 0.9rem; opacity: 0.92; }
+.topbar-sub { display: flex; gap: 1rem; font-size: 0.9rem; opacity: 0.92; flex-wrap: wrap; }
+
+/* Application version in the banner: present but visually subordinate to
+   the field day name and period. Hidden entirely while empty so an older
+   snapshot without the field leaves no stray separator behind. */
+.app-ver { opacity: 0.75; }
+.app-ver:empty { display: none; }
 
 .livebar {
   display: flex;
@@ -360,6 +366,30 @@ table.list { border-collapse: collapse; width: 100%; }
   padding: 0.45rem 0.2rem; border-bottom: 1px solid var(--line-soft);
 }
 .fd-list .active-tag { font-weight: 700; color: var(--ok); }
+
+/* -- participant list editor + category picker (§7.1/§7.2) -------------- */
+
+.drawer input[type=search], .drawer textarea {
+  font: inherit; width: 100%; padding: 0.45rem 0.6rem;
+  border: 1.5px solid var(--line); border-radius: 6px; min-height: 44px;
+}
+.drawer textarea.cat-list { min-height: 9rem; resize: vertical; }
+.drawer .cat-other { margin-top: 0.35rem; }
+.drawer .hint { font-size: 0.88rem; opacity: 0.8; margin: 0.35rem 0; }
+
+.st-list { list-style: none; margin: 0.4rem 0; padding: 0; }
+.st-row {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 0.5rem; padding: 0.45rem 0.2rem;
+  border-bottom: 1px solid var(--line-soft);
+}
+.st-row[hidden] { display: none; }
+/* The row being edited becomes a stacked form instead of a single line. */
+.st-row[data-editing] {
+  display: block; background: var(--line-soft);
+  border-radius: 8px; padding: 0.6rem 0.7rem; margin: 0.5rem 0;
+}
+.st-meta { flex: 1; font-size: 0.88rem; opacity: 0.8; text-align: right; }
 
 .msg { margin: 0.6rem 0; padding: 0.55rem 0.8rem; border-radius: 6px; font-weight: 600; }
 .msg.ok { background: rgba(34,197,94,0.12); border: 1.5px solid var(--ok); }

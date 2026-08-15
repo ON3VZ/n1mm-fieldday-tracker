@@ -734,3 +734,143 @@ class TestLifecycleEndpoints:
         state, _, _, _ = running_app
         result = state.apply_update({"installer_url": "https://evil.example.com/x.exe"})
         assert result["ok"] is False
+
+
+class TestEditStation:
+    """Fase 27: deelnemerslijst handmatig bewerken (§7.2)."""
+
+    def test_list_stations_returns_full_records(self, running_app):
+        _, _, _, http_port = running_app
+        status, result = http_get(http_port, "/api/stations")
+        assert status == 200
+        calls = [s["original_callsign"] for s in result["stations"]]
+        assert calls == ["ON4BAF/P", "ON4CDZ/P"]
+        # De editor bewerkt ook naam en club; die staan niet in de snapshot.
+        assert "name" in result["stations"][0] and "club" in result["stations"][0]
+
+    def test_edit_fields_without_touching_callsign(self, running_app):
+        _, repo, _, http_port = running_app
+        status, result = http_post(http_port, "/api/station/update", {
+            "normalized_callsign": "ON4BAF",
+            "category": "Open All Bands B.LP", "section": "RST",
+            "name": "Piet", "club": "WLD", "remarks": "tent 2",
+        })
+        assert status == 200 and result["normalized"] == "ON4BAF"
+        stored = {s.normalized_callsign: s for s in repo.load_stations()}
+        assert stored["ON4BAF"].category == "Open All Bands B.LP"
+        assert stored["ON4BAF"].section == "RST"
+        assert stored["ON4BAF"].name == "Piet" and stored["ON4BAF"].club == "WLD"
+        # Herkomst blijft staan: dit was een Excel-station, geen manueel station.
+        assert stored["ON4BAF"].source == "excel"
+        _, snapshot = http_get(http_port, "/snapshot.json")
+        station = next(s for s in snapshot["stations"] if s["normalized"] == "ON4BAF")
+        assert station["category"] == "Open All Bands B.LP"
+
+    def test_rename_callsign_updates_matrix_key(self, running_app):
+        state, repo, _, http_port = running_app
+        status, result = http_post(http_port, "/api/station/update", {
+            "normalized_callsign": "ON4CDZ", "callsign": "ON4XYZ/P",
+        })
+        assert status == 200 and result["normalized"] == "ON4XYZ"
+        assert "ON4CDZ" not in state.engine.station_index
+        assert state.engine.station_index["ON4XYZ"].original_callsign == "ON4XYZ/P"
+        stored = {s.normalized_callsign for s in repo.load_stations()}
+        assert stored == {"ON4BAF", "ON4XYZ"}
+
+    def test_rename_moves_manual_overrides(self, running_app):
+        """BR-05: de override hangt aan callsign+band en mag niet wezen worden."""
+        state, repo, _, http_port = running_app
+        http_post(http_port, "/api/override", {
+            "normalized_callsign": "ON4CDZ", "band": "40m",
+            "override_type": "manual_worked", "reason": "papieren log"})
+        status, _ = http_post(http_port, "/api/station/update", {
+            "normalized_callsign": "ON4CDZ", "callsign": "ON4XYZ/P"})
+        assert status == 200
+
+        assert ("ON4CDZ", "40m") not in state.engine.overrides_by_key
+        moved = state.engine.overrides_by_key[("ON4XYZ", "40m")]
+        assert moved.normalized_callsign == "ON4XYZ"
+        assert moved.reason == "papieren log"
+        # Ook op schijf, zodat een herstart hetzelfde beeld geeft.
+        assert [(o.normalized_callsign, o.band) for o in repo.load_overrides()] == \
+            [("ON4XYZ", "40m")]
+        _, snapshot = http_get(http_port, "/snapshot.json")
+        assert cell_status(snapshot, "ON4XYZ", "40m") == "manual_worked"
+
+    def test_rename_picks_up_previously_ignored_qsos(self, running_app):
+        """BR-03: een QSO op een onbekende call telde niet; na de correctie wel."""
+        state, repo, udp_port, http_port = running_app
+        now = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
+        send_udp(udp_port, contactinfo(call="ON4ZZZ/P", timestamp=now))
+        assert wait_until(lambda: len(repo.load_qsos()) == 1)
+        _, snapshot = http_get(http_port, "/snapshot.json")
+        assert all(s["normalized"] != "ON4ZZZ" for s in snapshot["stations"])
+
+        status, _ = http_post(http_port, "/api/station/update", {
+            "normalized_callsign": "ON4CDZ", "callsign": "ON4ZZZ/P"})
+        assert status == 200
+        _, snapshot = http_get(http_port, "/snapshot.json")
+        assert cell_status(snapshot, "ON4ZZZ", "80m") == "worked_by_n1mm"
+
+    def test_rename_onto_existing_station_rejected(self, running_app):
+        _, _, _, http_port = running_app
+        status, result = http_post(http_port, "/api/station/update", {
+            "normalized_callsign": "ON4CDZ", "callsign": "ON4BAF"})
+        assert status == 400 and "collides" in result["error"]
+
+    def test_implausible_callsign_rejected(self, running_app):
+        _, repo, _, http_port = running_app
+        status, _ = http_post(http_port, "/api/station/update", {
+            "normalized_callsign": "ON4BAF", "callsign": "JANSSENS"})
+        assert status == 400
+        # Niets half doorgevoerd.
+        assert {s.normalized_callsign for s in repo.load_stations()} == \
+            {"ON4BAF", "ON4CDZ"}
+
+    def test_unknown_station_rejected(self, running_app):
+        _, _, _, http_port = running_app
+        status, _ = http_post(http_port, "/api/station/update", {
+            "normalized_callsign": "ON9XYZ", "category": "QRP C12u"})
+        assert status == 400
+
+    def test_blocked_when_closed(self, running_app):
+        _, _, _, http_port = running_app
+        http_post(http_port, "/api/fieldday/close", {})
+        status, result = http_post(http_port, "/api/station/update", {
+            "normalized_callsign": "ON4BAF", "category": "QRP C12u"})
+        assert status == 400 and "closed" in result["error"]
+
+    def test_edit_survives_restart(self, running_app):
+        _, repo, _, http_port = running_app
+        http_post(http_port, "/api/station/update", {
+            "normalized_callsign": "ON4BAF", "callsign": "ON4BAF/QRP",
+            "category": "QRP C24u"})
+        fresh = AppState(repo)
+        station = fresh.engine.station_index["ON4BAF"]
+        assert station.original_callsign == "ON4BAF/QRP"
+        assert station.category == "QRP C24u"
+
+
+class TestCategorySettings:
+    """Fase 27: de categorielijst is een instelling, geen hardcoded lijst."""
+
+    def test_defaults_available_and_editable(self, running_app):
+        _, _, _, http_port = running_app
+        status, result = http_get(http_port, "/api/settings")
+        assert status == 200
+        assert "Open All Bands B.LP" in result["settings"]["station_categories"]
+
+        status, result = http_post(http_port, "/api/settings", {
+            "station_categories": ["  Nieuw 12u ", "Nieuw 12u", "", "Extra 24u"]})
+        assert status == 200
+        # Getrimd en ontdubbeld opgeslagen.
+        assert result["settings"]["station_categories"] == ["Nieuw 12u", "Extra 24u"]
+        _, reread = http_get(http_port, "/api/settings")
+        assert reread["settings"]["station_categories"] == ["Nieuw 12u", "Extra 24u"]
+
+    def test_categories_untouched_by_other_settings_saves(self, running_app):
+        _, _, _, http_port = running_app
+        http_post(http_port, "/api/settings", {"station_categories": ["Enkel deze"]})
+        http_post(http_port, "/api/settings", {"export_folder": "/tmp/x"})
+        _, result = http_get(http_port, "/api/settings")
+        assert result["settings"]["station_categories"] == ["Enkel deze"]

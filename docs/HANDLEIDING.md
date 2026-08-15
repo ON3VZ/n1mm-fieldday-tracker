@@ -17,7 +17,7 @@
 7. [N1MM Logger+ instellen](#7-n1mm-logger-instellen) *(volgt)*
 8. [Een velddag aanmaken](#8-een-velddag-aanmaken) *(volgt)*
 9. [Deelnemerslijst importeren](#9-deelnemerslijst-importeren) *(volgt)*
-10. [De matrix gebruiken](#10-de-matrix-gebruiken) *(volgt)*
+10. [De tabel gebruiken](#10-de-tabel-gebruiken) *(volgt)*
 11. [ADIF-import](#11-adif-import) *(volgt)*
 12. [Exporteren naar CSV en PDF](#12-exporteren-naar-csv-en-pdf) *(volgt)*
 13. [Publiceren naar GitHub Pages](#13-publiceren-naar-github-pages) *(volgt)*
@@ -306,16 +306,19 @@ geen achterpoortje om de formaatcontrole te omzeilen. Zowel komma's als
 puntkomma's als scheidingsteken worden automatisch herkend (een CSV die je
 uit Belgische Excel exporteert, gebruikt puntkomma's — dat werkt gewoon).
 
-## 10. De matrix gebruiken
+## 10. De tabel gebruiken
 
-De webpagina toont bovenaan de velddagnaam, de periode en een
-**live-indicator**. De pagina ververst zichzelf automatisch (elke paar
+De webpagina toont bovenaan de velddagnaam, de periode, het
+**versienummer** van de applicatie en een **live-indicator**. Dat
+versienummer staat er zodat je bij een probleem meteen kan zeggen met
+welke versie je werkt — het reist ook mee naar de publieke pagina, die dus
+de versie toont die de pagina gemaakt heeft. De pagina ververst zichzelf automatisch (elke paar
 seconden lokaal, elke 30 seconden op de publieke pagina) — je hoeft nooit
 op F5 te duwen. Wordt de indicator rood, dan komt er geen data meer binnen.
 
 Er zijn zes weergaven, via de tabbladen bovenaan:
 
-1. **Matrix** — het hoofdscherm. Rijen = stations, kolommen = banden. De
+1. **Tabel** — het hoofdscherm. Rijen = stations, kolommen = banden. De
    kolomkoppen tonen per band een klein voortgangsbalkje. Kopregel en
    roepnaamkolom blijven staan bij het scrollen. Tik op een cel voor de
    details (tijdstip, mode, frequentie, bron-PC).
@@ -382,10 +385,44 @@ velddag).
 ### Station manueel toevoegen (+)
 
 Rechts in de filterbalk staat **+ Station**. Die opent het paneel bij
-"Add station manually": roepnaam (verplicht) plus optioneel categorie,
-sectie en opmerking. Handig voor een station dat op de dag zelf nog
-aansluit. Manueel toegevoegde stations verdwijnen nooit bij een
+"Station handmatig toevoegen": roepnaam (verplicht) plus optioneel
+categorie, sectie en opmerking. Handig voor een station dat op de dag zelf
+nog aansluit. Manueel toegevoegde stations verdwijnen nooit bij een
 her-import van de Excel.
+
+De **categorie kies je uit een keuzelijst** in plaats van ze in te tikken.
+Dat is er niet voor de sierlijkheid: een tikfout in een categorie maakt
+stilzwijgend een tweede categorie aan, waardoor de statistiek per
+categorie in twee splitst en het filter twee bijna identieke regels toont.
+Staat de gewenste categorie er niet bij, kies dan **Andere… (zelf
+intypen)** en typ ze voluit — of voeg ze toe aan de vaste lijst in de
+instellingen (zie hoofdstuk 13). Categorieën die al in gebruik zijn maar
+niet in de instellingenlijst staan — bijvoorbeeld uit een oudere Excel —
+verschijnen automatisch mee in de keuzelijst, zodat een bewerking ze nooit
+per ongeluk leegmaakt.
+
+### Deelnemerslijst bewerken
+
+Onder **Beheer > Deelnemerslijst bewerken** staat de volledige lijst met
+een zoekveld erboven. Tik bij een station op **Bewerken** en je kan
+roepnaam, naam, club, categorie, sectie en opmerking aanpassen. Zo hoef je
+voor een tikfout of een laattijdige categoriewijziging niet meer de hele
+Excel opnieuw te importeren.
+
+Let op bij het wijzigen van een **roepnaam**: de roepnaam bepaalt welke
+QSO's bij dit station horen. Corrigeer je een verkeerd gespelde roepnaam,
+dan pikt de tracker meteen de QSO's op die tot dan toe genegeerd werden
+omdat ze niet overeenkwamen met de lijst — de cellen kunnen dus ineens
+groen worden. Manueel gezette statussen (overrides) verhuizen automatisch
+mee naar de nieuwe roepnaam, zodat je die niet opnieuw moet zetten. Een
+roepnaam die na normalisatie samenvalt met een station dat al in de lijst
+staat, wordt geweigerd met een duidelijke melding.
+
+Een station verwijderen kan ook vanuit dit paneel, met dezelfde knop en
+dezelfde bevestiging als hieronder beschreven. Let wel: een station dat uit
+de Excel komt en dat je hier aanpast, krijgt bij een **her-import van die
+Excel** opnieuw de waarden uit het bestand. Pas dus ook het bronbestand aan
+als de wijziging blijvend moet zijn.
 
 **Een station verwijderen:** tik in de matrix op een cel van dat station en
 kies onderaan het detailpaneel **Remove this station**. Er wordt eerst om
@@ -446,6 +483,13 @@ Open **Manage** en scrol naar **Settings**:
 - **Statuskleuren** — kies per status je eigen kleur; het ✎-symbool blijft
   altijd zichtbaar als niet-kleurgebonden markering.
 - **Export folder** — waar CSV/PDF-exports terechtkomen (volgt).
+- **Categorieën voor de keuzelijst** — één categorie per lijn. Dit is de
+  lijst die je krijgt bij het toevoegen en bewerken van een station. Komt
+  er een nieuwe UBA-categorie bij, dan voeg je hier gewoon een lijn toe;
+  daar is geen nieuwe versie van het programma voor nodig. Lege lijnen en
+  dubbels worden bij het opslaan automatisch weggehaald. Bestaande
+  stations behouden altijd de categorie die ze al hadden, ook als je die
+  uit de lijst haalt.
 
 ## 13b. Publiceren naar GitHub Pages
 

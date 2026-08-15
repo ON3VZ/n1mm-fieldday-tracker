@@ -31,6 +31,45 @@ DEFAULT_SELECTED_BANDS: list[str] = ["160m", "80m", "40m"]
 # user-configurable.
 DEFAULT_FRESHNESS_THRESHOLD_SECONDS = 300
 
+# Participant categories offered as a drop-down when adding or editing a
+# station (§7.1). Typing these by hand invites typos, and a typo creates a
+# second category that silently splits the per-category statistics. This
+# list only SEEDS a fresh installation: the user edits it in the settings
+# panel, so new UBA categories never require a code change.
+DEFAULT_STATION_CATEGORIES: list[str] = [
+    "Restricted A12u",
+    "Restricted A24u",
+    "Open All Bands B.LP",
+    "Open All Bands A.HP",
+    "QRP C12u",
+    "QRP C24u",
+    "Fixed 24u",
+    "SWL 24u",
+]
+
+
+def normalize_categories(values: Any) -> list[str]:
+    """Clean a user-supplied category list: trim, drop blanks, de-duplicate.
+
+    Order is preserved and the first spelling of a duplicate wins, so the
+    list stays exactly as the user arranged it. Comparison is
+    case-insensitive: "QRP C12u" and "qrp c12u" are the same category.
+    """
+    if not isinstance(values, (list, tuple)):
+        return []
+    result: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        text = str(value).strip()
+        if not text:
+            continue
+        marker = text.casefold()
+        if marker in seen:
+            continue
+        seen.add(marker)
+        result.append(text)
+    return result
+
 
 # ---------------------------------------------------------------------------
 # UTC helpers (BR-06)
@@ -469,6 +508,10 @@ class AppSettings:
     strict_callsign_matching: bool = False
     # Show the light-grey category line under each callsign in the matrix.
     show_station_category: bool = True
+    # Category drop-down for adding/editing stations; user-editable (§7.1).
+    station_categories: list[str] = field(
+        default_factory=lambda: list(DEFAULT_STATION_CATEGORIES)
+    )
     default_selected_bands: list[str] = field(
         default_factory=lambda: list(DEFAULT_SELECTED_BANDS)
     )
@@ -497,6 +540,7 @@ class AppSettings:
             "auto_sync_enabled": self.auto_sync_enabled,
             "strict_callsign_matching": self.strict_callsign_matching,
             "show_station_category": self.show_station_category,
+            "station_categories": list(self.station_categories),
             "default_selected_bands": list(self.default_selected_bands),
             "status_colors": dict(self.status_colors),
             "export_folder": self.export_folder,
@@ -517,6 +561,14 @@ class AppSettings:
             auto_sync_enabled=bool(data.get("auto_sync_enabled", True)),
             strict_callsign_matching=bool(data.get("strict_callsign_matching", False)),
             show_station_category=bool(data.get("show_station_category", True)),
+            # An explicitly empty list is a deliberate choice (free text only)
+            # and must survive a round trip; only a MISSING key re-seeds the
+            # defaults, so upgrading an older settings file keeps working.
+            station_categories=(
+                normalize_categories(data["station_categories"])
+                if isinstance(data.get("station_categories"), list)
+                else list(DEFAULT_STATION_CATEGORIES)
+            ),
             default_selected_bands=list(
                 data.get("default_selected_bands") or DEFAULT_SELECTED_BANDS
             ),

@@ -330,3 +330,51 @@ def test_app_settings_show_station_category_roundtrip():
     data = settings.to_dict()
     assert data["show_station_category"] is False
     assert AppSettings.from_dict(data).show_station_category is False
+
+
+class TestStationCategories:
+    """Fase 27: categorielijst als onderliggende, bewerkbare tabel (§7.1)."""
+
+    def test_defaults_seeded_and_backwards_compatible(self):
+        from app.core.models import DEFAULT_STATION_CATEGORIES, AppSettings
+
+        assert AppSettings().station_categories == DEFAULT_STATION_CATEGORIES
+        # Een settingsbestand van vóór deze versie kent de sleutel niet en
+        # moet de standaardlijst krijgen in plaats van een lege keuzelijst.
+        older = AppSettings.from_dict({"ui_language": "nl"})
+        assert older.station_categories == DEFAULT_STATION_CATEGORIES
+
+    def test_explicit_empty_list_survives_roundtrip(self):
+        """Bewust leegmaken betekent 'enkel vrije tekst' en mag niet terugkeren."""
+        from app.core.models import AppSettings
+
+        settings = AppSettings.from_dict({"station_categories": []})
+        assert settings.station_categories == []
+        assert AppSettings.from_dict(settings.to_dict()).station_categories == []
+
+    def test_roundtrip_keeps_user_order(self):
+        from app.core.models import AppSettings
+
+        wanted = ["Fixed 24u", "QRP C12u", "SWL 24u"]
+        settings = AppSettings(station_categories=list(wanted))
+        assert AppSettings.from_dict(settings.to_dict()).station_categories == wanted
+
+
+class TestNormalizeCategories:
+    def test_trims_drops_blanks_and_deduplicates(self):
+        from app.core.models import normalize_categories
+
+        assert normalize_categories(
+            ["  Fixed 24u ", "", "   ", "QRP C12u", "fixed 24u", "QRP C12u"]
+        ) == ["Fixed 24u", "QRP C12u"]
+
+    def test_first_spelling_wins_and_order_is_preserved(self):
+        from app.core.models import normalize_categories
+
+        assert normalize_categories(["SWL 24u", "swl 24U"]) == ["SWL 24u"]
+
+    def test_non_list_input_yields_empty(self):
+        from app.core.models import normalize_categories
+
+        assert normalize_categories(None) == []
+        assert normalize_categories("Fixed 24u") == []
