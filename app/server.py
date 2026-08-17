@@ -37,6 +37,25 @@ from app.view.snapshot_builder import build_snapshot
 logger = logging.getLogger(__name__)
 
 
+def _version_asset_links(html: bytes) -> bytes:
+    """Append ``?v=<version>`` to the asset links in the published index.html.
+
+    GitHub Pages sets its own cache headers on style.css and app.js, so a
+    phone can keep serving the previous stylesheet long after a publish. The
+    query string changes with every release and forces a reload. Only the
+    published copy is rewritten; the local view keeps the plain filenames.
+    """
+    from app.version import APP_VERSION
+
+    for name in ("style.css", "app.js"):
+        for attribute in (b"href", b"src"):
+            html = html.replace(
+                attribute + b'="' + name.encode() + b'"',
+                attribute + b'="' + name.encode() + f"?v={APP_VERSION}".encode() + b'"',
+            )
+    return html
+
+
 class AppState:
     """The running application: one active field day, engine and listener."""
 
@@ -715,7 +734,10 @@ class AppState:
             for name in ("index.html", "app.js", "style.css"):
                 path = static_dir / name
                 if path.exists():
-                    files[name] = path.read_bytes()
+                    data = path.read_bytes()
+                    if name == "index.html":
+                        data = _version_asset_links(data)
+                    files[name] = data
 
             publisher = GitHubPublisher(
                 repo=publish.repo, branch=publish.branch, token=token,

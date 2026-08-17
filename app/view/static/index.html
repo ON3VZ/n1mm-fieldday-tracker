@@ -39,6 +39,13 @@
   <button class="tab" data-view="stats" data-i18n="view.stats">Statistiek</button>
 </nav>
 
+<button type="button" id="filters-toggle" class="filters-toggle"
+        aria-controls="filters" aria-expanded="true">
+  <span data-i18n="filter.toggle">Filters</span>
+  <span class="fdot" id="filters-dot" aria-hidden="true" hidden>&#9679;</span>
+  <span class="chev" aria-hidden="true">&#9662;</span>
+</button>
+
 <section class="filters" id="filters">
   <input type="search" id="f-search" class="f-search mono"
          data-i18n-placeholder="filter.search" placeholder="Zoek roepnaam…">

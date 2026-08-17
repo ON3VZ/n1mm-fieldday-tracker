@@ -143,6 +143,10 @@ input:focus-visible {
   border-bottom: 1px solid var(--line-soft);
 }
 
+/* Only a phone folds the filter panel away; on a pc or tablet the filters
+   are always visible and this button never appears (see the media query). */
+.filters-toggle { display: none; }
+
 .filters input, .filters select {
   font: inherit;
   padding: 0.45rem 0.6rem;
@@ -316,6 +320,44 @@ table.list { border-collapse: collapse; width: 100%; }
   :root { --cell-size: 46px; font-size: 16px;
           --callcol-w: 8.5rem; --seccol-w: 3.6rem; }
   .topbar { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
+
+  /* Tabs on one horizontally scrollable row instead of two wrapped rows. */
+  .tabs {
+    flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: 0 0 auto; }
+
+  /* The filter panel wraps over three rows on a phone and eats roughly a
+     third of the screen, so it folds away behind its own button. */
+  .filters-toggle {
+    display: flex; align-items: center; gap: 0.4rem;
+    width: 100%; font: inherit; font-weight: 600; min-height: 44px;
+    padding: 0.4rem 1rem; text-align: left; cursor: pointer;
+    border: none; border-bottom: 1px solid var(--line-soft);
+    background: var(--paper-soft); color: var(--ink);
+  }
+  .filters-toggle .fdot { color: var(--teal); font-size: 1.4rem; line-height: 0.6; }
+  .filters-toggle .chev { display: inline-block; margin-left: auto; }
+  .filters-toggle[aria-expanded="true"] .chev { transform: rotate(180deg); }
+  .filters.collapsed { display: none; }
+
+  /* --legend-h is measured in app.js: the legend is fixed to the bottom edge
+     and wraps over two or three rows on a phone, which would otherwise cover
+     the last rows of the list views. */
+  main { padding-bottom: calc(var(--legend-h, 3rem) + 0.6rem); }
+
+  /* Height measured in JS (fitMatrixHeight in app.js): the fixed calc()
+     below assumes chrome of 240px, which is right on a pc but far too small
+     on a phone. The box then ran on behind the fixed legend and captured the
+     touch scroll, so swiping scrolled inside the table instead of the page
+     and the first stations vanished under the sticky header. */
+  .matrix-wrap { max-height: var(--matrix-max-h, calc(100vh - 240px)); }
+
+  /* A compact legend leaves room for one or two extra station rows. */
+  .legend { font-size: 0.78rem; gap: 0.45rem 0.75rem; padding: 0.35rem 0.7rem; }
+  .legend .swatch { width: 0.85rem; height: 0.85rem; }
 }
 
 

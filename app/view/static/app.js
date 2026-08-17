@@ -34,6 +34,7 @@ const STRINGS = {
     "filter.band.all": "All bands",
     "filter.category.all": "All categories",
     "filter.section.all": "All sections",
+    "filter.toggle": "Filters",
     "col.callsign": "Callsign",
     "col.band": "Band",
     "col.category": "Category",
@@ -266,6 +267,7 @@ const STRINGS = {
     "filter.band.all": "Alle banden",
     "filter.category.all": "Alle categorieën",
     "filter.section.all": "Alle secties",
+    "filter.toggle": "Filters",
     "col.callsign": "Roepnaam",
     "col.band": "Band",
     "col.category": "Categorie",
@@ -498,6 +500,7 @@ const STRINGS = {
     "filter.band.all": "Toutes les bandes",
     "filter.category.all": "Toutes les catégories",
     "filter.section.all": "Toutes les sections",
+    "filter.toggle": "Filtres",
     "col.callsign": "Indicatif",
     "col.band": "Bande",
     "col.category": "Catégorie",
@@ -886,6 +889,60 @@ function fmtUtc(iso) {
 
 /* ---------------------------------------------------------------- render */
 
+/* ---------------------------------------------------------- phone layout */
+
+/* On a phone the chrome above the table (topbar, wrapped tabs, three rows of
+ * filters) is far taller than the fixed `calc(100vh - 240px)` in the
+ * stylesheet assumed. The scroll box then ran on behind the fixed legend and
+ * swallowed the touch scroll: swiping scrolled inside the table instead of
+ * the page, so the first stations disappeared under the sticky header while
+ * the filters stayed on screen. Here the remaining height is measured, and
+ * the filter panel folds away. A pc or tablet keeps the stylesheet value. */
+const phone = window.matchMedia("(max-width: 700px)");
+
+function fitMatrixHeight() {
+  const root = document.documentElement;
+  if (!phone.matches) {
+    root.style.removeProperty("--matrix-max-h");
+    root.style.removeProperty("--legend-h");
+    return;
+  }
+  // The legend is fixed to the bottom edge and wraps over several rows on a
+  // narrow screen; its real height is what the other views need as bottom
+  // padding, and what the matrix has to stay clear of.
+  const legend = $("legend");
+  const legendHeight = legend ? legend.offsetHeight : 0;
+  root.style.setProperty("--legend-h", legendHeight + "px");
+
+  const wrap = document.querySelector(".matrix-wrap");
+  if (!wrap) {
+    root.style.removeProperty("--matrix-max-h");
+    return;
+  }
+  // Measured against an unscrolled page: the box then never reaches past the
+  // legend, and the value does not jitter while the page is being scrolled.
+  const top = wrap.getBoundingClientRect().top + window.scrollY;
+  const available = window.innerHeight - top - legendHeight - 8;
+  root.style.setProperty("--matrix-max-h", Math.max(available, 180) + "px");
+}
+
+let fitPending = false;
+function scheduleFit() {
+  if (fitPending) return;
+  fitPending = true;
+  window.requestAnimationFrame(() => {
+    fitPending = false;
+    fitMatrixHeight();
+  });
+}
+
+function setFiltersCollapsed(collapsed) {
+  $("filters").classList.toggle("collapsed", collapsed);
+  const toggle = $("filters-toggle");
+  if (toggle) toggle.setAttribute("aria-expanded", String(!collapsed));
+  scheduleFit();
+}
+
 function render() {
   if (!state.snapshot) return;
   const snap = state.snapshot;
@@ -947,6 +1004,12 @@ function render() {
     newInner.scrollTop = innerScroll.top;
   }
   if (pageScroll) window.scrollTo(0, pageScroll);
+
+  // A folded-away filter panel must still show that it is filtering, or a
+  // half-empty matrix looks like missing data.
+  const dot = $("filters-dot");
+  if (dot) dot.hidden = !anyFilterActive();
+  scheduleFit();
 }
 
 function ensureAddButton() {
@@ -2472,6 +2535,24 @@ function applyStaticStrings() {
 }
 
 applyStaticStrings();
+
+// Phone layout: filters start folded, and the table height follows the
+// screen (see fitMatrixHeight).
+const filtersToggle = $("filters-toggle");
+if (filtersToggle) {
+  filtersToggle.addEventListener("click", () => {
+    setFiltersCollapsed(!$("filters").classList.contains("collapsed"));
+  });
+}
+setFiltersCollapsed(phone.matches);
+window.addEventListener("resize", scheduleFit);
+window.addEventListener("orientationchange", scheduleFit);
+if (phone.addEventListener) {
+  phone.addEventListener("change", () => {
+    setFiltersCollapsed(phone.matches);
+  });
+}
+
 fetchSnapshot();
 
 // Debug/test handle (also useful for field diagnostics in the console).

@@ -196,6 +196,19 @@ class TestPublishFlow:
         assert "snapshot.json" in result["uploaded"]
         assert "index.html" in result["uploaded"]
 
+        # v1.3.1: the published index.html points at versioned assets, so a
+        # phone cannot keep serving a cached stylesheet after an update.
+        from app import config as _config
+        from app.version import APP_VERSION
+
+        index_html = FakeGitHub.store["index.html"].decode()
+        assert f'href="style.css?v={APP_VERSION}"' in index_html
+        assert f'src="app.js?v={APP_VERSION}"' in index_html
+        # The local copy on disk stays untouched.
+        local_html = (_config.static_view_dir() / "index.html").read_text(
+            encoding="utf-8")
+        assert 'href="style.css"' in local_html
+
         published = json.loads(FakeGitHub.store["snapshot.json"].decode())
         assert published["readonly"] is True
         # §10.3: privé-inhoud standaard weggelaten
@@ -349,3 +362,23 @@ class TestPublicationState:
         published = json.loads(FakeGitHub.store["snapshot.json"].decode())
         assert published["publication"]["state"] == "expired"
         assert published["stations"] == []  # no data leaked on an expired page
+
+
+class TestPublishedAssetCacheBusting:
+    """§10.3 — the published page must pick up a new stylesheet (v1.3.1)."""
+
+    def test_asset_links_get_the_version(self):
+        from app.server import _version_asset_links
+        from app.version import APP_VERSION
+
+        html = (b'<link rel="stylesheet" href="style.css">'
+                b'<script src="app.js"></script>')
+        out = _version_asset_links(html).decode()
+        assert f'href="style.css?v={APP_VERSION}"' in out
+        assert f'src="app.js?v={APP_VERSION}"' in out
+
+    def test_other_content_untouched(self):
+        from app.server import _version_asset_links
+
+        html = b'<a href="style.css.txt">x</a><img src="logo.png">'
+        assert _version_asset_links(html) == html

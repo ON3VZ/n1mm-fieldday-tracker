@@ -335,6 +335,17 @@ Er zijn zes weergaven, via de tabbladen bovenaan:
 Bovenaan kan je altijd **filteren**: zoeken op roepnaam, op status (gewerkt
 / niet gewerkt / gedeeltelijk), band, categorie en sectie.
 
+**Op een smartphone** staan de filters dichtgeklapt achter de knop
+**Filters ▾**; tik erop om ze open te vouwen. Staat er een blauw bolletje
+naast, dan is er een filter actief en zie je dus niet alle stations. De
+tabbladen staan op één rij die je horizontaal kan schuiven, en de tabel
+past zich aan de schermhoogte aan, zodat het eerste station altijd
+leesbaar is. Op pc en tablet verandert er niets: daar blijven de filters
+gewoon zichtbaar staan.
+
+> Op een smartphone zit de knop **Station toevoegen** in het filterpaneel;
+> vouw dat dus eerst open. (Die knop bestaat enkel op de lokale versie.)
+
 Manueel gezette statussen zijn herkenbaar aan het **✎-symbool** in de
 celhoek — ook zonder kleuren te zien. De betekenis van elke kleur staat in
 de legende onderaan.
