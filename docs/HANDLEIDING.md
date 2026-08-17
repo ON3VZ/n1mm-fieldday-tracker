@@ -560,6 +560,11 @@ exact dezelfde als je lokale, maar **alleen-lezen** — geen knoppen, geen
 overrides. Netwerkfouten worden automatisch opnieuw geprobeerd en
 blokkeren de tracker nooit.
 
+Klik je op **Publish now** terwijl er al een publicatie loopt (bv. net op
+het moment dat automatisch publiceren afgaat), dan krijg je de melding
+"Er loopt al een publicatie — probeer het straks opnieuw" in plaats van een
+foutmelding: de tweede poging wordt netjes geweigerd, niet uitgevoerd.
+
 ### Wat het publiek ziet, afhankelijk van de velddagstatus
 
 De publieke pagina past zich automatisch aan:

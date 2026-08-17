@@ -230,6 +230,7 @@ const STRINGS = {
     "pub.result": "Published: {up} uploaded, {skip} unchanged.",
     "pub.resulterr": "Publish failed: {e}",
     "pub.offline": "No internet connection — publishing paused. It will resume automatically when you are back online.",
+    "pub.busy": "A publish is already in progress — try again in a moment.",
     "pub.pagesurl": "Public page:",
     "pub.tokenset": "token configured",
     "pub.notoken": "no token yet",
@@ -463,6 +464,7 @@ const STRINGS = {
     "pub.result": "Gepubliceerd: {up} geüpload, {skip} ongewijzigd.",
     "pub.resulterr": "Publiceren mislukt: {e}",
     "pub.offline": "Geen internetverbinding — publiceren gepauzeerd. Het hervat vanzelf zodra je weer online bent.",
+    "pub.busy": "Er loopt al een publicatie — probeer het straks opnieuw.",
     "pub.pagesurl": "Publieke pagina:",
     "pub.tokenset": "token ingesteld",
     "pub.notoken": "nog geen token",
@@ -696,6 +698,7 @@ const STRINGS = {
     "pub.result": "Publié : {up} envoyés, {skip} inchangés.",
     "pub.resulterr": "Échec de publication : {e}",
     "pub.offline": "Pas de connexion Internet — publication en pause. Elle reprendra automatiquement une fois en ligne.",
+    "pub.busy": "Une publication est déjà en cours — réessayez dans un instant.",
     "pub.pagesurl": "Page publique :",
     "pub.tokenset": "token configuré",
     "pub.notoken": "pas encore de token",
@@ -818,7 +821,19 @@ async function api(path, payload) {
   });
   const data = await response.json().catch(() => ({ ok: false, error: "bad response" }));
   if (!response.ok || data.ok === false) {
-    throw new Error(data.error || ("HTTP " + response.status));
+    // Endpoints like /api/publish/now answer with HTTP 200 and
+    // {ok:false, errors:[...]} on a partial failure — the real reason sits
+    // in the plural `errors`, not `error`. Falling back to "HTTP " + status
+    // in that case just prints the misleading "HTTP 200".
+    const reason = data.error ||
+      (Array.isArray(data.errors) && data.errors.length
+        ? data.errors.join("; ")
+        : null) ||
+      ("HTTP " + response.status);
+    const err = new Error(reason);
+    if (data.offline) err.offline = true;
+    if (data.already_running) err.busy = true;
+    throw err;
   }
   return data;
 }
@@ -2181,6 +2196,8 @@ async function manageAction(fn, okText) {
   } catch (err) {
     if (err && err.offline) {
       manageMsg = { kind: "warn", text: t("pub.offline") };
+    } else if (err && err.busy) {
+      manageMsg = { kind: "warn", text: t("pub.busy") };
     } else {
       manageMsg = { kind: "warn", text: t("manage.error", { e: err.message }) };
     }
@@ -2384,12 +2401,12 @@ document.addEventListener("click", async (event) => {
     return;
   }
   if (target.id === "pub-now") {
-    manageAction(async () => {
-      const result = await api("/api/publish/now", {});
-      if (result.offline) { const e = new Error("offline"); e.offline = true; throw e; }
-      if (!result.ok) throw new Error((result.errors || [result.error]).join("; "));
-      return result;
-    }, (r) => t("pub.result", { up: r.uploaded.length, skip: r.skipped.length }));
+    // api() now surfaces the real GitHub error (or the offline flag) itself,
+    // so this handler no longer needs its own duplicate error-shaping —
+    // that duplicate logic never actually ran, since api() always threw
+    // first on {ok:false}, before this callback's own checks were reached.
+    manageAction(() => api("/api/publish/now", {}),
+      (r) => t("pub.result", { up: r.uploaded.length, skip: r.skipped.length }));
     return;
   }
   if (target.id === "listener-restart") {

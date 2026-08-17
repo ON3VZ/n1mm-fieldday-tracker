@@ -28,6 +28,12 @@ class OfflineError(RuntimeError):
 RETRIES = 3
 BACKOFF_SECONDS = (1, 3, 6)
 TIMEOUT_S = 12
+# Separate from RETRIES/BACKOFF_SECONDS above: those retry a single request
+# on transient network/server errors. This retries the GET-sha+PUT pair on
+# an HTTP 409 sha conflict, which needs a fresh sha each time, not the same
+# request repeated.
+CONFLICT_RETRIES = 3
+CONFLICT_BACKOFF_SECONDS = 0.5
 
 
 def git_blob_sha(content: bytes) -> str:
@@ -109,25 +115,46 @@ class GitHubPublisher:
         return None
 
     def publish_file(self, path: str, content: bytes, message: str) -> str:
-        """Upload one file; returns 'uploaded' or 'skipped'."""
-        remote = self._remote_sha(path)
-        if remote is not None and remote == git_blob_sha(content):
-            return "skipped"
-        payload = {
-            "message": message,
-            "content": base64.b64encode(content).decode("ascii"),
-            "branch": self.branch,
-        }
-        if remote is not None:
-            payload["sha"] = remote
-        url = f"{self.api_base}/repos/{self.repo}/contents/{path}"
-        response = self._request("PUT", url, json=payload)
-        if response.status_code not in (200, 201):
+        """Upload one file; returns 'uploaded' or 'skipped'.
+
+        Retries on an HTTP 409 sha conflict (§10.3): if this file was
+        updated on GitHub between our GET and our PUT — most commonly the
+        auto-publish timer and a manual click overlapping — GitHub rejects
+        the PUT with "does not match <sha>". ``snapshot.json`` changes on
+        every publish and can therefore never take the "content unchanged"
+        skip shortcut below, which is what leaves it uniquely exposed to
+        this race (the static assets are normally byte-identical between
+        two overlapping runs, so the second one just skips them instead of
+        conflicting). Re-fetching the current sha and retrying recovers
+        automatically instead of failing the whole publish.
+        """
+        for attempt in range(CONFLICT_RETRIES):
+            remote = self._remote_sha(path)
+            if remote is not None and remote == git_blob_sha(content):
+                return "skipped"
+            payload = {
+                "message": message,
+                "content": base64.b64encode(content).decode("ascii"),
+                "branch": self.branch,
+            }
+            if remote is not None:
+                payload["sha"] = remote
+            url = f"{self.api_base}/repos/{self.repo}/contents/{path}"
+            response = self._request("PUT", url, json=payload)
+            if response.status_code in (200, 201):
+                return "uploaded"
+            if response.status_code == 409 and attempt < CONFLICT_RETRIES - 1:
+                logger.info(
+                    "Publish conflict for %s (attempt %d/%d), retrying with "
+                    "a fresh sha", path, attempt + 1, CONFLICT_RETRIES,
+                )
+                time.sleep(CONFLICT_BACKOFF_SECONDS)
+                continue
             raise RuntimeError(
                 f"PUT {path} failed: HTTP {response.status_code} "
                 f"{response.text[:200]}"
             )
-        return "uploaded"
+        raise RuntimeError(f"PUT {path} failed: exhausted conflict retries")
 
     def publish_files(
         self, files: dict[str, bytes], path_prefix: str = "", message: str = ""

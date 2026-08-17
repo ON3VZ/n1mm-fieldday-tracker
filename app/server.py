@@ -72,6 +72,15 @@ class AppState:
         )
         self.listener: N1mmUdpListener | None = None
         self._lock = threading.Lock()
+        # Guards publish_now() itself (not the same as self._lock, which
+        # protects the in-memory engine state): a manual click and the
+        # auto-publish timer run on different threads and both call
+        # publish_now(). Without this, two overlapping runs each fetch the
+        # current sha of snapshot.json, and whichever PUTs second is
+        # rejected with an HTTP 409 "does not match <sha>" conflict — seen
+        # in practice (v1.3.3). Non-blocking: a second call while one is
+        # already in flight is reported, not queued or raced.
+        self._publish_lock = threading.Lock()
         self._raw_log_path = repo.dir / "raw_packets.log"
         self._settings_cache = None
         self._watchdog_thread = None
@@ -685,7 +694,32 @@ class AppState:
         return self._settings_cache.publish
 
     def publish_now(self) -> dict[str, Any]:
-        """Publish snapshot + static view to GitHub (§10.3). Never raises."""
+        """Publish snapshot + static view to GitHub (§10.3). Never raises.
+
+        Guarded by ``self._publish_lock``: the auto-publish timer and a
+        manual click run on different threads, and each does GET-then-PUT
+        per file. If two runs overlap, whichever PUTs ``snapshot.json``
+        second is rejected with an HTTP 409 "does not match <sha>" — that
+        file changes on every publish, so it can never take the "content
+        unchanged, skip" shortcut that protects the static assets. A
+        second call while one is already in flight is reported, not queued
+        or raced.
+        """
+        if not self._publish_lock.acquire(blocking=False):
+            logger.info("Publish skipped: another publish is already running")
+            payload = {
+                "ok": False, "already_running": True,
+                "error": "a publish is already in progress",
+                "uploaded": [], "skipped": [], "errors": ["already_running"],
+                "at_utc": to_iso_z(utc_now()),
+            }
+            return payload
+        try:
+            return self._publish_now_locked()
+        finally:
+            self._publish_lock.release()
+
+    def _publish_now_locked(self) -> dict[str, Any]:
         import json as jsonlib
         from app.publish.credentials import get_token
         from app.publish.github_publisher import DEFAULT_API_BASE, GitHubPublisher

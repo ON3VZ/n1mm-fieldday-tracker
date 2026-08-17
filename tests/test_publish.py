@@ -19,7 +19,9 @@ class FakeGitHub(BaseHTTPRequestHandler):
 
     store: dict[str, bytes] = {}
     fail_next: list[int] = []  # status codes to return before succeeding
-    puts: list[str] = []
+    puts: list[str] = []  # successful PUTs only
+    put_attempts: list[str] = []  # every PUT received, success or not
+    conflict_next_puts: int = 0  # answer this many upcoming PUTs with a 409
 
     def log_message(self, *args):  # quiet
         pass
@@ -46,13 +48,25 @@ class FakeGitHub(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_PUT(self):
+        key = self._path_key()
+        FakeGitHub.put_attempts.append(key)
         if FakeGitHub.fail_next:
             self.send_response(FakeGitHub.fail_next.pop(0))
             self.end_headers()
             return
+        if FakeGitHub.conflict_next_puts > 0:
+            # Simulates another publish run having changed this file
+            # between our GET and our PUT (§10.3 / v1.3.3).
+            FakeGitHub.conflict_next_puts -= 1
+            body = json.dumps({"message": "snapshot.json does not match"}).encode()
+            self.send_response(409)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         length = int(self.headers.get("Content-Length", "0"))
         payload = json.loads(self.rfile.read(length).decode())
-        key = self._path_key()
         existed = key in FakeGitHub.store
         FakeGitHub.store[key] = base64.b64decode(payload["content"])
         FakeGitHub.puts.append(key)
@@ -69,6 +83,8 @@ def fake_github():
     FakeGitHub.store = {}
     FakeGitHub.fail_next = []
     FakeGitHub.puts = []
+    FakeGitHub.put_attempts = []
+    FakeGitHub.conflict_next_puts = 0
     server = ThreadingHTTPServer(("127.0.0.1", 0), FakeGitHub)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
@@ -132,6 +148,39 @@ class TestPublisher:
     def test_invalid_repo_rejected(self):
         with pytest.raises(ValueError, match="owner/name"):
             GitHubPublisher(repo="zonderslash", branch="main", token="x")
+
+    def test_conflict_retries_with_a_fresh_sha(self, fake_github):
+        """v1.3.3: a 409 sha conflict recovers by re-fetching and retrying,
+        instead of failing the whole publish (§10.3)."""
+        publisher = self._publisher(fake_github)
+        publisher.publish_files({"snapshot.json": b"v1"})
+        FakeGitHub.put_attempts = []  # baseline write done; count only what follows
+        FakeGitHub.puts = []
+        FakeGitHub.conflict_next_puts = 1  # only the first PUT attempt conflicts
+        result = publisher.publish_files({"snapshot.json": b"v2"})
+        assert result.ok is True
+        assert result.uploaded == ["snapshot.json"]
+        assert FakeGitHub.store["snapshot.json"] == b"v2"
+        # Two attempts reached the server: the conflicting one and the retry.
+        assert FakeGitHub.put_attempts.count("snapshot.json") == 2
+        assert FakeGitHub.puts.count("snapshot.json") == 1
+
+    def test_conflict_exhausts_retries_then_reports_the_error(
+        self, fake_github, monkeypatch
+    ):
+        import app.publish.github_publisher as gp
+
+        monkeypatch.setattr(gp, "CONFLICT_BACKOFF_SECONDS", 0)
+        publisher = self._publisher(fake_github)
+        publisher.publish_files({"snapshot.json": b"v1"})
+        FakeGitHub.put_attempts = []  # baseline write done; count only what follows
+        FakeGitHub.conflict_next_puts = 99  # keeps conflicting
+        result = publisher.publish_files({"snapshot.json": b"v2"})
+        assert result.ok is False
+        assert result.errors and "snapshot.json" in result.errors[0]
+        assert "409" in result.errors[0]
+        # Never gave up silently: it did try CONFLICT_RETRIES times.
+        assert FakeGitHub.put_attempts.count("snapshot.json") == gp.CONFLICT_RETRIES
 
 
 class TestCredentials:
@@ -364,7 +413,71 @@ class TestPublicationState:
         assert published["stations"] == []  # no data leaked on an expired page
 
 
-class TestPublishedAssetCacheBusting:
+class TestPublishConcurrency:
+    """v1.3.3: an auto-publish run and a manual click must not race on
+    snapshot.json (§10.3) — that race is what produced the HTTP 409 'does
+    not match <sha>' seen in practice."""
+
+    def _make_state(self, fake_github, monkeypatch, tmp_path):
+        from datetime import datetime, timedelta, timezone
+
+        from app.core.models import FieldDay, Station, StationSource
+        from app.server import AppState
+        from app.storage.app_settings import load_app_settings, save_app_settings
+        from app.storage.fieldday_repository import create_fieldday
+
+        monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg"))
+        monkeypatch.setenv(credentials.ENV_VAR, "tok")
+        import importlib
+
+        import app.config as config
+        importlib.reload(config)
+
+        settings = load_app_settings()
+        settings.publish.repo = "club/velddag-live"
+        settings.publish.api_base = fake_github
+        save_app_settings(settings)
+
+        start = datetime.now(timezone.utc)
+        fieldday = FieldDay(id="fd-lock", name="Locktest",
+                            start_utc=start, end_utc=start + timedelta(hours=24))
+        repo = create_fieldday(fieldday, root_dir=tmp_path / "fds")
+        repo.save_stations([Station(original_callsign="ON4BAF/P",
+                                    normalized_callsign="ON4BAF",
+                                    source=StationSource.EXCEL)])
+        state = AppState(repo)
+        state.engine.set_stations(repo.load_stations())
+        return state
+
+    def test_overlapping_publish_is_turned_away_not_raced(
+        self, fake_github, monkeypatch, tmp_path
+    ):
+        state = self._make_state(fake_github, monkeypatch, tmp_path)
+        # Hold the lock as if another publish run (the auto-publish timer,
+        # or a previous click) were already in flight.
+        state._publish_lock.acquire()
+        try:
+            result = state.publish_now()
+        finally:
+            state._publish_lock.release()
+        assert result["ok"] is False
+        assert result["already_running"] is True
+        # It never reached GitHub at all — no race was even possible.
+        assert FakeGitHub.put_attempts == []
+
+    def test_publish_still_works_once_the_lock_is_free(
+        self, fake_github, monkeypatch, tmp_path
+    ):
+        state = self._make_state(fake_github, monkeypatch, tmp_path)
+        result = state.publish_now()
+        assert result["ok"] is True
+        assert "snapshot.json" in result["uploaded"]
+        # And the lock is released again afterwards for the next run.
+        assert state._publish_lock.acquire(blocking=False)
+        state._publish_lock.release()
+
+
+
     """§10.3 — the published page must pick up a new stylesheet (v1.3.1)."""
 
     def test_asset_links_get_the_version(self):
