@@ -21,6 +21,7 @@ const STRINGS = {
     "live.stale": "No data — last update {s}s ago",
     "live.readonly": "Public view — updated {s} ago",
     "view.matrix": "Table",
+    "view.remaining": "Remaining",
     "view.towork": "Still to work",
     "view.band": "Per band",
     "view.station": "Per station",
@@ -79,6 +80,7 @@ const STRINGS = {
     "status.manual_not_worked": "Not worked (manual)",
     "status.excluded": "Excluded",
     "matrix.none": "No stations match the current filters.",
+    "remaining.none": "Nothing left — every visible station is fully worked!",
     "manage.open": "Manage",
     "manual.open": "Manual",
     "manual.title": "Quick manual",
@@ -255,6 +257,7 @@ const STRINGS = {
     "live.stale": "Geen data — laatste update {s}s geleden",
     "live.readonly": "Publieke weergave — bijgewerkt {s} geleden",
     "view.matrix": "Tabel",
+    "view.remaining": "Openstaand",
     "view.towork": "Nog te werken",
     "view.band": "Per band",
     "view.station": "Per station",
@@ -313,6 +316,7 @@ const STRINGS = {
     "status.manual_not_worked": "Niet gewerkt (handmatig)",
     "status.excluded": "Uitgesloten",
     "matrix.none": "Geen stations voldoen aan de huidige filters.",
+    "remaining.none": "Niets meer open — alle zichtbare stations zijn volledig gewerkt!",
     "manage.open": "Beheer",
     "manual.open": "Handleiding",
     "manual.title": "Beknopte handleiding",
@@ -489,6 +493,7 @@ const STRINGS = {
     "live.stale": "Aucune donnée — dernière mise à jour il y a {s}s",
     "live.readonly": "Vue publique — mise à jour il y a {s}",
     "view.matrix": "Tableau",
+    "view.remaining": "Restants",
     "view.towork": "À travailler",
     "view.band": "Par bande",
     "view.station": "Par station",
@@ -547,6 +552,7 @@ const STRINGS = {
     "status.manual_not_worked": "Non travaillé (manuel)",
     "status.excluded": "Exclu",
     "matrix.none": "Aucune station ne correspond aux filtres actuels.",
+    "remaining.none": "Rien à faire — toutes les stations visibles sont entièrement travaillées !",
     "manage.open": "Gérer",
     "manual.open": "Manuel",
     "manual.title": "Manuel rapide",
@@ -999,7 +1005,7 @@ function render() {
 
   const root = $("view-root");
   const views = {
-    matrix: renderMatrix, towork: renderToWork, band: renderBand,
+    matrix: renderMatrix, remaining: renderRemaining, towork: renderToWork, band: renderBand,
     station: renderStation, sources: renderSources, stats: renderStats,
   };
   // Preserve scroll position across the periodic rebuild (every 5s the
@@ -1170,13 +1176,34 @@ function formatErrorHtml(info) {
 }
 
 function renderMatrix() {
+  return buildMatrixTable(visibleStations(), "matrix.none");
+}
+
+/* ---- view 1b: remaining (same table as Tabel, worked-out stations hidden) */
+
+// A station is "done" once every visible band's cell is worked (or excluded
+// — nothing left to log there). It then drops out of this view; as soon as
+// one visible band is still open, the station stays.
+function stationFullyWorked(station, bands) {
+  return bands.every((band) => {
+    const status = station.cells[band] ? station.cells[band].status : "not_worked";
+    return status === "excluded" || WORKED.has(status);
+  });
+}
+
+function renderRemaining() {
+  const bands = visibleBands();
+  const stations = visibleStations().filter((s) => !stationFullyWorked(s, bands));
+  return buildMatrixTable(stations, "remaining.none");
+}
+
+function buildMatrixTable(stations, emptyKey) {
   const snap = state.snapshot;
-  const stations = visibleStations();
   const bands = visibleBands();
   const wrap = document.createElement("div");
   wrap.className = "matrix-wrap";
   if (stations.length === 0) {
-    wrap.innerHTML = emptyStateHtml("matrix.none");
+    wrap.innerHTML = emptyStateHtml(emptyKey);
     return wrap;
   }
 
